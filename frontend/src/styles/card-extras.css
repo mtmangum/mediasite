@@ -2,6 +2,9 @@
 .course-heading {
   margin: 10px 0;
 }
+.card-meta + .course-heading {
+  margin-top: 0;
+}
 .course-line {
   display: flex;
   flex-wrap: wrap;
