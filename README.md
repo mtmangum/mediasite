@@ -9,6 +9,8 @@ Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
 - **Recent presentations** (`/recent`): the 100 most recently created viewable presentations, nine per page, with grid/list views, thumbnails, local search, sorting, refresh, watch links, and live analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
+![Presentations grid in dark mode with thumbnails, view counts, recording checks, and analytics controls](screenshot.png)
+
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
 
 Typography uses a self-hosted Inter 4.1 variable font, with system fonts as a fallback
