@@ -1,7 +1,7 @@
 # Mediasite API Tester
 
 A small Node app with a Vite + TypeScript front end for exploring the Mediasite REST API at
-`https://utengr.mediasite.com/Mediasite/Api/v1`.
+your server's `/Mediasite/Api/v1` address (set `MEDIASITE_BASE_URL`).
 
 Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
 
@@ -55,7 +55,7 @@ Already have a checkout? Run the last two commands in the folder containing
 
 ### 2. Get an API key
 
-1. Open `https://YOUR-SERVER/Mediasite/Api/Docs/ApiKeyRegistration.aspx` ([UT Engineering](https://utengr.mediasite.com/Mediasite/Api/Docs/ApiKeyRegistration.aspx)). Adjust the installation path for your server.
+1. Open `https://YOUR-SERVER/Mediasite/Api/Docs/ApiKeyRegistration.aspx`. Adjust the installation path for your server.
 2. Sign in as an administrator, enter an application name, and click **Submit**.
 3. Copy the generated key. If you lack access, ask your Mediasite administrator for a key and an API account.
 
@@ -73,8 +73,8 @@ MEDIASITE_API_KEY="your-generated-api-key"
 PORT=3000
 ```
 
-The supplied example defaults to UT Engineering. Keep `.env` private (it is
-gitignored), and restart the app after changing it.
+There is no default server; set `MEDIASITE_BASE_URL` to your own `https` address. Keep `.env`
+private (it is gitignored), and restart the app after changing it.
 
 ### 4. Run
 

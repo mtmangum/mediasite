@@ -1,7 +1,12 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
-const { getConfig, authHeaders, callApi } = require("../mediasite");
+const {
+  getConfig,
+  configProblem,
+  authHeaders,
+  callApi,
+} = require("../mediasite");
 
 const clearEnv = () => {
   for (const key of [
@@ -13,13 +18,11 @@ const clearEnv = () => {
     delete process.env[key];
 };
 
-test("config falls back to the default site and trims trailing slashes", (t) => {
+test("config has no default site and trims trailing slashes", (t) => {
   clearEnv();
   t.after(clearEnv);
-  assert.equal(
-    getConfig().baseUrl,
-    "https://utengr.mediasite.com/Mediasite/Api/v1",
-  );
+  assert.equal(getConfig().baseUrl, "");
+  assert.match(configProblem(getConfig()), /base URL/);
   process.env.MEDIASITE_BASE_URL = "https://example.test/Api/v1///";
   assert.equal(getConfig().baseUrl, "https://example.test/Api/v1");
 });
@@ -81,4 +84,38 @@ test("callApi sends credentials, normalizes the path, and reports timing", async
   await callApi(cfg, { method: "POST", path: "/Things", body: '{"a":1}' });
   assert.equal(seen[1].method, "POST");
   assert.equal(seen[1].headers["content-type"], "application/json");
+});
+
+test("the base URL must be https (or loopback http) without credentials", () => {
+  const problem = (baseUrl) => configProblem({ baseUrl });
+  assert.equal(problem("https://media.example.edu/Mediasite/Api/v1"), null);
+  assert.equal(problem("http://localhost:8080/Api/v1"), null);
+  assert.match(problem("http://media.example.edu/Api/v1"), /https/);
+  assert.match(problem("https://user:pw@media.example.edu/Api/v1"), /username/);
+  assert.match(problem("not a url"), /valid/);
+});
+
+test("API calls refuse to run without a usable base URL", async () => {
+  await assert.rejects(
+    callApi({ baseUrl: "", username: "", password: "", apiKey: "" }, {}),
+    { status: 400, message: /base URL/ },
+  );
+});
+
+test("API calls refuse redirects instead of forwarding the key", async (t) => {
+  const redirector = http.createServer((req, res) => {
+    res.writeHead(302, { Location: "http://127.0.0.1:1/elsewhere" });
+    res.end();
+  });
+  await new Promise((resolve) => redirector.listen(0, "127.0.0.1", resolve));
+  t.after(() => redirector.close());
+  await assert.rejects(
+    callApi(
+      {
+        baseUrl: `http://127.0.0.1:${redirector.address().port}/Api/v1`,
+        apiKey: "secret",
+      },
+      {},
+    ),
+  );
 });

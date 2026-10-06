@@ -1,4 +1,4 @@
-const { callApi, authHeaders } = require("../mediasite");
+const { callApi, authHeaders, configProblem } = require("../mediasite");
 const { durationWarnings } = require("../recording-health");
 const { sendJson, SECURITY_HEADERS } = require("../http-utils");
 
@@ -42,11 +42,15 @@ async function recent(req, res, ctx) {
 // Proxy thumbnails with credentials, but only for the configured Mediasite host.
 async function thumbnail(req, res, ctx, url) {
   const cfg = ctx.config();
+  const problem = configProblem(cfg);
+  if (problem) return sendJson(res, 400, { error: problem });
   const target = new URL(url.searchParams.get("u"), cfg.baseUrl);
   if (target.origin !== new URL(cfg.baseUrl).origin)
     return sendJson(res, 400, { error: "Foreign host" });
   const up = await fetch(target, {
     headers: authHeaders(cfg),
+    // A redirect would carry the API key header to wherever it points.
+    redirect: "error",
     signal: AbortSignal.timeout(30000),
   });
   res.writeHead(up.status, {

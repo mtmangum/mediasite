@@ -1,17 +1,39 @@
 // Shared Mediasite helpers: connection config, auth headers, and request calls.
-const DEFAULT_BASE = "https://utengr.mediasite.com/Mediasite/Api/v1";
 
+// There is deliberately no default server: credentials are only ever sent where you point them.
 function getConfig(overrides = {}) {
   return {
     baseUrl: (
       overrides.baseUrl ||
       process.env.MEDIASITE_BASE_URL ||
-      DEFAULT_BASE
+      ""
     ).replace(/\/+$/, ""),
     username: overrides.username ?? process.env.MEDIASITE_USERNAME ?? "",
     password: overrides.password ?? process.env.MEDIASITE_PASSWORD ?? "",
     apiKey: overrides.apiKey ?? process.env.MEDIASITE_API_KEY ?? "",
   };
+}
+
+const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
+
+// Your login and API key are sent to the base URL, so it must be set, use https (http only for
+// this machine), and not embed credentials. Returns a message, or null when usable.
+function configProblem(cfg) {
+  if (!cfg.baseUrl)
+    return "Set the Mediasite base URL (MEDIASITE_BASE_URL, or the Connection panel), for example https://YOUR-SERVER/Mediasite/Api/v1.";
+  try {
+    const url = new URL(cfg.baseUrl);
+    const secure =
+      url.protocol === "https:" ||
+      (url.protocol === "http:" && LOOPBACK.test(url.hostname));
+    if (!secure)
+      return "The base URL must be an https:// address (http:// only for localhost).";
+    if (url.username || url.password)
+      return "The base URL must not contain a username or password.";
+  } catch {
+    return "The base URL is not a valid URL.";
+  }
+  return null;
 }
 
 // Basic auth (when a username is set) plus the sfapikey header (when a key is set).
@@ -29,6 +51,8 @@ async function callApi(
   cfg,
   { method = "GET", path = "/Home", body, contentType },
 ) {
+  const problem = configProblem(cfg);
+  if (problem) throw Object.assign(new Error(problem), { status: 400 });
   const headers = { Accept: "application/json", ...authHeaders(cfg) };
   if (body) headers["Content-Type"] = contentType || "application/json";
 
@@ -38,6 +62,8 @@ async function callApi(
     method,
     headers,
     body: body || undefined,
+    // A redirect would carry the API key header to wherever it points.
+    redirect: "error",
     signal: AbortSignal.timeout(30000),
   });
   const text = await res.text();
@@ -51,4 +77,4 @@ async function callApi(
   };
 }
 
-module.exports = { getConfig, authHeaders, callApi };
+module.exports = { getConfig, configProblem, authHeaders, callApi };

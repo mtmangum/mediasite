@@ -4,6 +4,13 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ## [Unreleased]
 
+### Security
+
+- Removed the built-in default Mediasite server from the code, `.env.example`, and README. Set `MEDIASITE_BASE_URL` (or use the Connection panel); API calls now refuse to run without an `https` base URL (`http` only for localhost) that has no embedded credentials.
+- API requests and the thumbnail proxy no longer follow redirects, which would have forwarded the API key header to wherever the redirect pointed.
+- Replaced the README screenshot, which showed real instructor names and view counts, with one of the sample-data demo.
+- Added `test/public-repo.test.js`, which fails if an env or key file is tracked or tracked text names a real Mediasite host, private key, or common token.
+
 ### Added
 
 - A static demo for GitHub Pages (`npm run build:demo`, published by `.github/workflows/pages.yml` to `https://<user>.github.io/<repo>/`). It is the real UI running against a built-in sample API (`frontend/src/demo-api.ts`): fictional courses, people, sessions, and generated thumbnails, all derived from the same sessions so counts, charts, and the heatmap agree. No credentials or Mediasite data are involved, the demo code is absent from the normal build, and the demo omits the university wordmarks and carries a “sample data” banner. Chart links work on Pages through a `404.html` fallback, and the app now works from a sub-path (`import.meta.env.BASE_URL`).
