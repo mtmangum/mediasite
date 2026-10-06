@@ -1,0 +1,117 @@
+/* Compact presentation rows share the grid's content and preview controls. */
+.view-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--panel);
+}
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 0;
+  font-size: var(--text-small);
+}
+.view-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+.view-toggle button[aria-pressed="true"] {
+  background: var(--soft);
+  color: var(--ink-course);
+  box-shadow: inset 0 -2px var(--ut-orange);
+}
+.cards[data-view="list"] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.cards[data-view="list"] .card-front {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) 132px;
+  align-items: start;
+  gap: 20px;
+  padding: 16px;
+}
+.cards[data-view="list"] .thumb-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cards[data-view="list"] .duration {
+  bottom: 6px;
+  right: 6px;
+  padding: 2px 5px;
+}
+.cards[data-view="list"] .info {
+  min-width: 0;
+  padding: 0;
+}
+.cards[data-view="list"] .card-meta {
+  float: right;
+  margin: 0 0 8px 12px;
+}
+.cards[data-view="list"] .course-heading {
+  margin: 0 0 8px;
+}
+.cards[data-view="list"] h2 {
+  overflow-wrap: anywhere;
+}
+.cards[data-view="list"] .desc {
+  -webkit-line-clamp: 1;
+}
+.cards[data-view="list"] .card-actions {
+  flex-direction: column;
+  padding: 0;
+}
+.cards[data-view="list"] .card-actions .flip-button {
+  width: auto;
+  flex: auto;
+}
+.cards[data-view="list"] .card-back {
+  display: none;
+}
+.cards[data-view="list"] .card dl {
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  margin: 8px 0;
+}
+.cards[data-view="list"] .presentation-details dl {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+@media (max-width: 950px) {
+  .cards[data-view="list"] .card-front {
+    grid-template-columns: 144px minmax(0, 1fr);
+    gap: 12px 16px;
+  }
+  .cards[data-view="list"] .card-actions {
+    grid-column: 2;
+    flex-direction: row;
+  }
+  .cards[data-view="list"] .card-meta {
+    float: none;
+    justify-content: flex-start;
+    margin: 0 0 8px;
+  }
+  .cards[data-view="list"] .card dl {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+@media (max-width: 650px) {
+  .cards[data-view="list"] .card-front {
+    grid-template-columns: 96px minmax(0, 1fr);
+    padding: 12px;
+    gap: 12px;
+  }
+  .cards[data-view="list"] .info h2 {
+    font-size: 15px;
+  }
+  .cards[data-view="list"] .card-actions {
+    grid-column: 1 / -1;
+  }
+  .cards[data-view="list"] .card-actions > * {
+    flex: 1;
+  }
+}

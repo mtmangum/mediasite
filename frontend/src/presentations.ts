@@ -28,6 +28,12 @@ import { findPresentation } from "./store";
 import { element, errorMessage, type Presentation } from "./shared";
 
 const PAGE_SIZE = 9;
+let view: "grid" | "list" = "grid";
+try {
+  if (localStorage.getItem("mediasite-view") === "list") view = "list";
+} catch {
+  /* View switching still works when storage is unavailable. */
+}
 const flipped = new Set<string>();
 let currentPage = 1;
 // How often to quietly look for new recordings; `?poll=<seconds>` overrides it (for testing).
@@ -46,6 +52,16 @@ const search = element<HTMLInputElement>("search");
 const sort = element<HTMLSelectElement>("sort");
 const refresh = element<HTMLButtonElement>("refresh");
 
+function syncView() {
+  list.dataset.view = view;
+  document
+    .querySelectorAll<HTMLButtonElement>("button[data-view]")
+    .forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.view === view));
+    });
+}
+syncView();
+
 function render() {
   const visible = sortPresentations(
     filterPresentations(store.items, search.value),
@@ -53,7 +69,6 @@ function render() {
   );
   const page = paginate(visible, currentPage, PAGE_SIZE);
   currentPage = page.currentPage;
-  element("paginationTop").hidden = visible.length === 0;
   element("pagination").hidden = visible.length === 0;
   renderPageControls(
     pageControlsMarkup(
@@ -70,7 +85,7 @@ function render() {
     ? "No presentations match your search."
     : "No viewable presentations are available. Check your login in the API explorer connection settings.";
   list.innerHTML = page.items
-    .map((p) => cardMarkup(p, flipped.has(p.id)))
+    .map((p) => cardMarkup(p, view === "grid" && flipped.has(p.id), view))
     .join("");
   queueHealth(page.items);
   trackThumbnails();
@@ -171,7 +186,6 @@ async function load(fresh = false) {
   state.className = "sr-only";
   state.textContent = "Loading presentations…";
   list.innerHTML = skeletonCards(PAGE_SIZE);
-  element("paginationTop").hidden = true;
   element("pagination").hidden = true;
   try {
     store.items = (
@@ -204,26 +218,10 @@ function changePage(event: Event) {
   if (!button || button.disabled) return;
   const page = Number(button.dataset.page);
   if (page === currentPage) return;
-  const controls = button.closest<HTMLElement>("[data-page-controls]")!;
-  const fromBottom = !!controls.closest("#pagination");
-  const nav = button.dataset.nav;
-  const { scrollX, scrollY } = window;
   currentPage = page;
   render();
-  if (fromBottom) {
-    list.focus({ preventScroll: true });
-    list.scrollIntoView({ block: "start" });
-  } else {
-    // Rendering replaces the buttons; keep focus on the same control for repeated navigation.
-    const replacement = controls.querySelector<HTMLButtonElement>(
-      nav ? `[data-nav="${nav}"]` : `[data-page="${page}"]`,
-    );
-    const focusTarget = replacement?.disabled
-      ? controls.querySelector<HTMLButtonElement>('[aria-current="page"]')
-      : replacement;
-    focusTarget?.focus({ preventScroll: true });
-    window.scrollTo({ left: scrollX, top: scrollY, behavior: "instant" });
-  }
+  list.focus({ preventScroll: true });
+  list.scrollIntoView({ block: "start" });
 }
 
 // Turns a card over, moving focus and inertness to the visible face.
@@ -264,6 +262,20 @@ list.addEventListener("click", (event) => {
 document
   .querySelectorAll<HTMLElement>("[data-page-controls]")
   .forEach((controls) => controls.addEventListener("click", changePage));
+document
+  .querySelectorAll<HTMLButtonElement>("button[data-view]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      view = button.dataset.view === "list" ? "list" : "grid";
+      try {
+        localStorage.setItem("mediasite-view", view);
+      } catch {
+        /* Keep the preference for this session. */
+      }
+      syncView();
+      if (!loading) render();
+    });
+  });
 search.oninput = resetPage;
 sort.onchange = resetPage;
 refresh.onclick = () => void load(true);

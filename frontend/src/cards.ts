@@ -52,7 +52,11 @@ function detailsMarkup(p: Presentation) {
 }
 
 // A flip card: presentation details on the front, analytics on the back.
-export function cardMarkup(p: Presentation, flipped: boolean) {
+export function cardMarkup(
+  p: Presentation,
+  flipped: boolean,
+  view: "grid" | "list" = "grid",
+) {
   const parsed = parseCourseTitle(p.title);
   const flipLabel = [parsed.course, parsed.title, parsed.sections]
     .filter(Boolean)
@@ -70,7 +74,7 @@ export function cardMarkup(p: Presentation, flipped: boolean) {
     </div>
     <div class="card-actions">
       <a class="watch" href="${esc(p.watchUrl)}" target="_blank" rel="noopener">Watch ↗</a>
-      <button class="secondary flip-button" data-action="flip" aria-label="View analytics for ${esc(flipLabel)}">Analytics ⤾</button>
+      <button class="secondary flip-button" data-action="${view === "list" ? "expand" : "flip"}" aria-label="View analytics for ${esc(flipLabel)}">Analytics ${view === "list" ? "↗" : "⤾"}</button>
     </div></div>
     <div class="card-face card-back" ${flipped ? "" : 'inert aria-hidden="true"'}>
     <div class="info card-back-content">

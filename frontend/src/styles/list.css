@@ -10,15 +10,6 @@
   flex: 1 1 140px;
   min-width: 120px;
 }
-.toolbar .page-controls {
-  margin-left: auto;
-}
-.toolbar .page-controls button {
-  min-width: var(--control-height);
-}
-.toolbar .page-label {
-  display: none;
-}
 .new-recordings {
   display: flex;
   align-items: center;
@@ -71,9 +62,6 @@
 }
 .page-of {
   font-size: 12px;
-}
-.toolbar .page-of {
-  display: none;
 }
 .page-controls .page-number {
   min-width: var(--control-height);

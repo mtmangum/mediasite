@@ -6,7 +6,7 @@ A small Node app with a Vite + TypeScript front end for exploring the Mediasite 
 Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
 
 - **API explorer** (`/`): send GET/POST/PUT/PATCH/DELETE requests, validate JSON bodies, revisit session request history, and copy or download formatted/raw responses.
-- **Recent presentations** (`/recent`): the 100 most recently created viewable presentations, nine per page, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
+- **Recent presentations** (`/recent`): the 100 most recently created viewable presentations, nine per page, with grid/list views, thumbnails, local search, sorting, refresh, watch links, and live analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
@@ -24,39 +24,88 @@ wordmark in `frontend/public/brand/` comes from the
 Its vector paths and proportions are preserved; the dark-mode asset uses the
 [permitted white reverse](https://brand.utexas.edu/identity/logos/).
 
-## Setup
+## Quick start
+
+You need **[Node.js](https://nodejs.org/) 22.12+** (includes npm), **Git**, and a
+Mediasite API key plus username/password. Your account needs **API Access** and
+permission to read your presentations; browser SSO alone is not enough.
+
+### 1. Install
 
 ```sh
-npm install
+git clone https://github.com/mtmangum/mediasite.git
+cd mediasite
+npm ci
 cp .env.example .env
 ```
 
-Then fill in `.env`:
+Already have a checkout? Run the last two commands in the folder containing
+`package.json`. On PowerShell, use `Copy-Item .env.example .env` to copy the file.
 
-| Variable                                    | Purpose                                |
-| ------------------------------------------- | -------------------------------------- |
-| `MEDIASITE_BASE_URL`                        | API root (defaults to the utengr site) |
-| `MEDIASITE_API_KEY`                         | Sent as the `sfapikey` header          |
-| `MEDIASITE_USERNAME` / `MEDIASITE_PASSWORD` | Sent as HTTP Basic auth                |
-| `PORT`                                      | Local server port (default 3000)       |
+### 2. Get an API key
 
-`.env` is gitignored. Credentials stay on the server; the browser never sees them.
+1. Open `https://YOUR-SERVER/Mediasite/Api/Docs/ApiKeyRegistration.aspx` ([UT Engineering](https://utengr.mediasite.com/Mediasite/Api/Docs/ApiKeyRegistration.aspx)). Adjust the installation path for your server.
+2. Sign in as an administrator, enter an application name, and click **Submit**.
+3. Copy the generated key. If you lack access, ask your Mediasite administrator for a key and an API account.
 
-## Run
+See [Mediasite's official guide](https://learn.mediasite.com/course/getting-started-with-mediasite-api/lessons/setting-up-an-api-key/).
 
-```sh
-npm run dev        # http://localhost:3000, front-end live reload
-npm start          # type-check, build, and serve production assets
-PORT=3100 npm run dev
-npm run build      # strict TypeScript check + production build
-npm test           # unit tests, plus the server run against a local fake Mediasite
-npm run typecheck
-npm run format:check
-npm run format
-npm run smoke
+### 3. Configure
+
+Edit `.env` with your connection details:
+
+```dotenv
+MEDIASITE_BASE_URL=https://YOUR-SERVER/Mediasite/Api/v1
+MEDIASITE_USERNAME="your-api-username"
+MEDIASITE_PASSWORD="your-api-password"
+MEDIASITE_API_KEY="your-generated-api-key"
+PORT=3000
 ```
 
-Restart `npm run dev` after changing backend files or Vite configuration.
+The supplied example defaults to UT Engineering. Keep `.env` private (it is
+gitignored), and restart the app after changing it.
+
+### 4. Run
+
+```sh
+npm run dev
+```
+
+Open **[Presentations](http://localhost:3000/recent)** or the
+**[API explorer](http://localhost:3000)**. Leave the terminal running; **Ctrl+C** stops
+it. Use `npm start` to build and serve without live reload.
+
+**Check access:** in the explorer, send GET `/Presentations?$top=3&$select=full`.
+Expect `200` with items in `value`. `npm run smoke` also checks your `.env` connection,
+but can pass with no visible recordings.
+
+**Optional previews:** install [FFmpeg](https://ffmpeg.org/download.html) and check
+`ffmpeg -version`. If needed, set `FFMPEG_PATH="/path/to/ffmpeg"` in `.env`.
+**No credentials yet?** Try the [sample-data demo](#demo-site-github-pages).
+
+### Common issues
+
+| Problem                              | Fix                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| Port in use                          | Set `PORT=3100` in `.env`, restart, and open `http://localhost:3100`.          |
+| `401` / `403` or empty library       | Check key, login, API Access, and content permissions with your administrator. |
+| Timeout / login page instead of JSON | Check VPN/network access and the API URL ending in `/Api/v1`.                  |
+| Build fails                          | Check `node --version` is 22.12+ and run `npm ci`.                             |
+
+## Development commands
+
+| Command                | Purpose                                  |
+| ---------------------- | ---------------------------------------- |
+| `npm run build`        | Type-check and build into `dist/`        |
+| `npm test`             | Run tests against a local fake Mediasite |
+| `npm run typecheck`    | Check TypeScript                         |
+| `npm run format:check` | Check formatting                         |
+| `npm run format`       | Apply formatting                         |
+| `npm run smoke`        | Check the configured Mediasite API       |
+
+Restart the dev server after backend or Vite configuration changes.
+
+## Using the app
 
 Both modes serve the browser and API from the same localhost origin. Production files
 are generated in `dist/`. Vite runs as middleware in development; credentials are never
@@ -66,8 +115,10 @@ method, path, and status in page memory, and resets when the page reloads. Prese
 search and sorting (including **Most viewed**) apply to all 100 loaded results and return to page one.
 Each card's view count is a color-coded capsule: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime,
 21+ green. Use the
-numbered pages or previous/next arrows in the top toolbar, or **Previous** / **Next**
-below the cards, to browse nine cards at a time. Flip a card with **Analytics** to
+numbered pages or **Previous** / **Next** below the presentations to browse nine at a time.
+Switch between **Grid** and **List** in the toolbar; your choice is saved in the browser
+and switching keeps your current page, search, and sort. List rows open the viewing
+charts directly with **Analytics**. In grid view, flip a card with **Analytics** to
 load all-time views, unique users, watch time, first/last watched, peak connections,
 and browser/operating-system totals. **Refresh analytics** reloads those values;
 otherwise they are cached in page memory. The **API responses** disclosure shows
@@ -149,7 +200,7 @@ copy of the app, which GitHub Pages serves for unknown paths.
 
 ## Viewing analytics and shareable links
 
-Open **Viewing charts** from the back of a card. The dialog shows headline numbers, a few
+Open **Viewing charts** from the back of a grid card, or **Analytics** from a list row. The dialog shows headline numbers, a few
 plain-language observations, and charts for engagement across the recording, views by day,
 when people watch (in your time zone), how long people stay, and the audience. Hover or tap
 a chart to read it; every chart has a "View exact counts" table. Sessions are summarized on

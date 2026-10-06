@@ -31,13 +31,13 @@ export function pageControlsMarkup(
   return status + previous + numbers + next;
 }
 
-// Writes the controls into both the top and bottom navs.
+// Writes the bottom navigation controls.
 export function renderPageControls(markup: string) {
   document
     .querySelectorAll<HTMLElement>("[data-page-controls]")
     .forEach((controls) => {
       controls.innerHTML = markup;
-      // Announce page changes once, from the bottom controls only.
+      // Announce the updated page range.
       if (controls.closest("#pagination"))
         controls.querySelector(".page-status")?.setAttribute("role", "status");
     });

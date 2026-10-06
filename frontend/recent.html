@@ -115,15 +115,50 @@
           <option value="newest">Newest first</option>
           <option value="title">Title A–Z</option>
           <option value="views">Most viewed</option>
-          <option value="duration">Longest first</option></select
-        ><button id="refresh">Refresh ↻</button>
-        <nav
-          id="paginationTop"
-          class="page-controls"
-          data-page-controls
-          aria-label="Presentation pages, top"
-          hidden
-        ></nav>
+          <option value="duration">Longest first</option>
+        </select>
+        <div class="view-toggle" role="group" aria-label="Presentation view">
+          <button
+            class="secondary"
+            type="button"
+            data-view="grid"
+            aria-pressed="true"
+            aria-controls="list"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="5" height="5" rx="1" />
+              <rect x="12" y="3" width="5" height="5" rx="1" />
+              <rect x="3" y="12" width="5" height="5" rx="1" />
+              <rect x="12" y="12" width="5" height="5" rx="1" />
+            </svg>
+            Grid
+          </button>
+          <button
+            class="secondary"
+            type="button"
+            data-view="list"
+            aria-pressed="false"
+            aria-controls="list"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="M8 4h9M8 10h9M8 16h9M3 4h2M3 10h2M3 16h2" />
+            </svg>
+            List
+          </button>
+        </div>
+        <button id="refresh">Refresh ↻</button>
       </div>
       <div id="newRecordings" class="new-recordings" hidden>
         <span id="newRecordingsText" role="status"></span>
