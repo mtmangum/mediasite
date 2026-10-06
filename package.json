@@ -1,0 +1,11 @@
+{
+  "name": "mediasite-api-test",
+  "version": "1.0.0",
+  "description": "Small test harness for the Mediasite REST API",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "smoke": "node --env-file-if-exists=.env smoke-test.js"
+  },
+  "engines": { "node": ">=22" }
+}
