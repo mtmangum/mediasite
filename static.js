@@ -10,8 +10,10 @@ const TYPES = {
   ".woff2": "font/woff2",
   ".txt": "text/plain; charset=utf-8",
 };
-const isRecent = (pathname) =>
-  pathname === "/recent" || pathname === "/recent/";
+// /recent and /recent/<presentation-id>/charts (a shareable link to one presentation's
+// viewing charts) are both served by the presentations page, which reads the route itself.
+const RECENT_ROUTE = /^\/recent(\/[A-Za-z0-9_-]{1,128}\/charts)?\/?$/;
+const isRecent = (pathname) => RECENT_ROUTE.test(pathname);
 
 // Serves the built front end (or Vite's middleware in development).
 function serveStatic(req, res, { root, vite }) {
@@ -42,4 +44,4 @@ function serveStatic(req, res, { root, vite }) {
   return sendJson(res, 404, { error: "Not found" });
 }
 
-module.exports = { serveStatic };
+module.exports = { serveStatic, isRecent };

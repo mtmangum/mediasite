@@ -1,6 +1,7 @@
 import { esc, fmtDate, fmtTime } from "./format";
 import { fetchJson } from "./http";
-import { findPresentation } from "./store";
+import { addExtra, findPresentation } from "./store";
+import { chartsFor, chartsPath, LIST_PATH } from "./route";
 import { parseCourseTitle } from "./course-title";
 import { renderViewingCharts } from "./viewing-charts";
 import {
@@ -8,6 +9,7 @@ import {
   errorMessage,
   type Analytics,
   type Loadable,
+  type Presentation,
   type ViewingCharts,
 } from "./shared";
 
@@ -130,10 +132,16 @@ async function loadViewing(id: string, refresh = false) {
   updateViewing(id);
 }
 
-// Opens the full-size viewing-charts dialog for a presentation.
-export function expandAnalytics(id: string) {
+const baseTitle = document.title;
+let closingFromRoute = false;
+
+// Opens the full-size viewing-charts dialog for a presentation, and gives it a shareable URL.
+export function expandAnalytics(id: string, { push = true } = {}) {
   const parsed = parseCourseTitle(findPresentation(id)!.title);
   expandedId = id;
+  if (push && chartsFor(location.pathname) !== id)
+    history.pushState({ charts: id }, "", chartsPath(id) + location.search);
+  document.title = `Viewing analytics · ${parsed.title}`;
   element("analyticsTitle").textContent = parsed.title;
   element("analyticsCourse").textContent = [
     parsed.course,
@@ -148,10 +156,59 @@ export function expandAnalytics(id: string) {
   void loadViewing(id);
 }
 
+// Opens the charts for a presentation named by a URL, fetching it if the list doesn't have it.
+// Resolves false when the presentation can't be found.
+export async function openChartsFromRoute(id: string) {
+  if (!findPresentation(id)) {
+    try {
+      const { item } = await fetchJson<{ item: Presentation }>(
+        `/presentation.json?id=${encodeURIComponent(id)}`,
+      );
+      addExtra({ ...item, viewsReady: true });
+    } catch {
+      history.replaceState(null, "", LIST_PATH + location.search);
+      return false;
+    }
+  }
+  expandAnalytics(id, { push: false });
+  return true;
+}
+
 dialog.addEventListener("close", () => {
   expandedId = null;
   document.documentElement.classList.remove("analytics-open");
+  document.title = baseTitle;
+  if (closingFromRoute || !chartsFor(location.pathname)) return;
+  // Closing returns to the list: step back if we pushed the charts URL, else rewrite it.
+  if (history.state?.charts) history.back();
+  else history.replaceState(null, "", LIST_PATH + location.search);
 });
+
+// Browser Back/Forward moves between the list and a presentation's charts.
+window.addEventListener("popstate", () => {
+  const id = chartsFor(location.pathname);
+  if (id) {
+    if (expandedId !== id) void openChartsFromRoute(id);
+  } else if (dialog.open) {
+    closingFromRoute = true;
+    dialog.close();
+    closingFromRoute = false;
+  }
+});
+
+const copyLink = element<HTMLButtonElement>("copyChartsLink");
+copyLink.onclick = async () => {
+  if (!expandedId) return;
+  const link = new URL(chartsPath(expandedId), location.origin).href;
+  try {
+    await navigator.clipboard.writeText(link);
+    copyLink.textContent = "Link copied";
+  } catch {
+    copyLink.textContent = "Copy failed";
+    window.prompt("Copy this link", link);
+  }
+  setTimeout(() => (copyLink.textContent = "Copy link"), 1800);
+};
 element<HTMLButtonElement>("refreshCharts").onclick = () => {
   if (expandedId) void loadViewing(expandedId, true);
 };

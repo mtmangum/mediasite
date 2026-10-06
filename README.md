@@ -132,6 +132,28 @@ totals are looked up one presentation at a time (eight in parallel, visible card
 cached on the server for five minutes, and bypassed by the **Refresh** button. A shimmering
 placeholder stands in until each count arrives; if a lookup fails, the list's count is used.
 
+## Viewing analytics and shareable links
+
+Open **Viewing charts** from the back of a card. The dialog shows headline numbers, a few
+plain-language observations, and charts for engagement across the recording, views by day,
+when people watch (in your time zone), how long people stay, and the audience. Hover or tap
+a chart to read it; every chart has a "View exact counts" table. Sessions are summarized on
+the server without identities: device class, open time, watch time and coverage, plus counts
+of distinct and returning viewers by network address (all viewing here is anonymous, so
+Mediasite's own "unique users" is always 1).
+
+Each presentation's charts have a URL: `/recent/<presentation-id>/charts`. Opening the
+dialog sets it, **Copy link** copies it, Back and Forward move between the list and the
+charts, and a link to an older recording (outside the latest 100) works too.
+
+## New recordings
+
+The page does not poll constantly: every three minutes (and when a tab that was hidden for
+a while becomes visible) it quietly fetches the list again. If there are recordings it
+has not shown yet, a prompt offers them; nothing moves until you click **Show**. The
+**Refresh** button reloads immediately. Add `?poll=10` to the URL to check every ten
+seconds while testing.
+
 ## What needs which credentials
 
 | Endpoint                    | Anonymous | API key only          | API key + login |
@@ -155,7 +177,7 @@ placeholder stands in until each count arrives; if a lookup fails, the list's co
 Back end (Node, no dependencies):
 
 - `server.js` — entry point: shared state, route dispatch, static files, optional Vite dev middleware
-- `routes/` — one module per concern: `connection.js` (`/config`, `/request`), `presentations.js` (`/recent.json`, `/thumb`), `analytics.js` (`/analytics.json`, `/viewing.json`), `views.js` (`/views.json?ids=…`), `health.js` (`/health.json`), `previews.js` (`/preview.json`, `/preview`)
+- `routes/` — one module per concern: `connection.js` (`/config`, `/request`), `presentations.js` (`/recent.json`, `/presentation.json?id=…`, `/thumb`), `analytics.js` (`/analytics.json`, `/viewing.json`), `views.js` (`/views.json?ids=…`), `health.js` (`/health.json`), `previews.js` (`/preview.json`, `/preview`)
 - `static.js` / `http-utils.js` — static file serving and request/response helpers
 - `mediasite.js` — connection config, auth headers (`authHeaders`), and request helper
 - `thumbnails.js` — bounded frame extraction, visual review signals, and local preview caching
@@ -172,7 +194,8 @@ Front end (Vite + TypeScript):
 - `frontend/src/cards.ts` — card markup, view-count tiers, skeleton placeholders
 - `frontend/src/pagination.ts` — page-status and page-button markup
 - `frontend/src/health.ts` / `previews.ts` / `analytics.ts` / `live-views.ts` — per-card recording checks, frame previews, analytics, and live view totals
-- `frontend/src/viewing-charts.ts` — expanded analytics charts and segment inspection
+- `frontend/src/viewing-charts.ts` / `viewing-stats.ts` — viewing analytics charts, and the pure statistics behind them
+- `frontend/src/route.ts` — shareable chart-link URLs
 - `frontend/src/shared.ts` / `format.ts` / `http.ts` / `store.ts` — shared types, formatting and escaping, JSON fetch helpers, loaded-list state
 - `frontend/src/style.css` — imports `frontend/src/styles/*.css` in cascade order (base, layout, explorer, list, cards, responsive, card-flip, analytics, dialog, charts, card-extras, loading)
 - `vite.config.mjs` / `tsconfig.json` — build and strict type-check settings

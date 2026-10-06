@@ -5,14 +5,9 @@ const { sendJson } = require("../http-utils");
 const RECENT_COUNT = 100;
 const RECENT_PATH = `/Presentations?$top=${RECENT_COUNT}&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full`;
 
-async function recent(req, res, ctx) {
-  const cfg = ctx.config();
-  const r = await callApi(cfg, { path: RECENT_PATH });
-  if (r.status !== 200)
-    return sendJson(res, r.status, {
-      error: `Mediasite returned ${r.status} ${r.statusText}`,
-    });
-  const items = (JSON.parse(r.body).value || []).map((p) => ({
+// The card shape the front end uses, from a Mediasite presentation record.
+function toItem(p, cfg) {
+  return {
     id: p.Id,
     title: p.Title,
     description: p.Description,
@@ -30,7 +25,17 @@ async function recent(req, res, ctx) {
       ? "/thumb?u=" + encodeURIComponent(p.ThumbnailUrl)
       : null,
     watchUrl: cfg.baseUrl.replace(/\/Api\/v1$/i, "") + "/Play/" + p.Id,
-  }));
+  };
+}
+
+async function recent(req, res, ctx) {
+  const cfg = ctx.config();
+  const r = await callApi(cfg, { path: RECENT_PATH });
+  if (r.status !== 200)
+    return sendJson(res, r.status, {
+      error: `Mediasite returned ${r.status} ${r.statusText}`,
+    });
+  const items = (JSON.parse(r.body).value || []).map((p) => toItem(p, cfg));
   return sendJson(res, 200, { items });
 }
 
@@ -51,7 +56,28 @@ async function thumbnail(req, res, ctx, url) {
   return res.end(Buffer.from(await up.arrayBuffer()));
 }
 
+const VALID_ID = /^[a-zA-Z0-9_-]{1,128}$/;
+
+// One presentation by id, so a shared link works for recordings outside the latest 100.
+async function one(req, res, ctx, url) {
+  const id = url.searchParams.get("id");
+  if (!VALID_ID.test(id || ""))
+    return sendJson(res, 400, { error: "Invalid presentation ID" });
+  const cfg = ctx.config();
+  const r = await callApi(cfg, {
+    path: `/Presentations('${id}')?$select=full`,
+  });
+  if (r.status === 404)
+    return sendJson(res, 404, { error: "Presentation not found" });
+  if (r.status !== 200)
+    return sendJson(res, r.status, {
+      error: `Mediasite returned ${r.status} ${r.statusText}`,
+    });
+  return sendJson(res, 200, { item: toItem(JSON.parse(r.body), cfg) });
+}
+
 module.exports = [
   { method: "GET", path: "/recent.json", handler: recent },
+  { method: "GET", path: "/presentation.json", handler: one },
   { method: "GET", path: "/thumb", handler: thumbnail },
 ];

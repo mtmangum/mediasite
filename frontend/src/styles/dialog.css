@@ -44,6 +44,11 @@
 .expanded-head button {
   white-space: nowrap;
 }
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .expanded-toolbar {
   display: flex;
   align-items: center;

@@ -60,6 +60,15 @@ before(async () => {
     if (req.url.startsWith("/Mediasite/Api/v1/Home"))
       return reply(200, "application/json", '{"SiteName":"Fake"}');
     if (!authorized) return reply(401, "application/json", "{}");
+    const entity = /\/Presentations\('(\w+)'\)/.exec(req.url);
+    if (entity)
+      return entity[1] === "p1"
+        ? reply(
+            200,
+            "application/json",
+            JSON.stringify(presentations(fakeOrigin)[0]),
+          )
+        : reply(404, "application/json", "{}");
     if (req.url.startsWith("/Mediasite/Api/v1/Presentations"))
       return reply(
         200,
@@ -256,6 +265,22 @@ test("/views.json rejects missing, malformed, or excessive ids", async () => {
   assert.equal((await get("/views.json?ids=a'b")).status, 400);
   const tooMany = Array.from({ length: 101 }, (_, i) => `id${i}`).join(",");
   assert.equal((await get(`/views.json?ids=${tooMany}`)).status, 400);
+});
+
+test("/presentation.json returns one presentation, 404s unknown ones, and rejects bad ids", async () => {
+  const found = await get("/presentation.json?id=p1");
+  assert.equal(found.status, 200);
+  assert.equal(found.body.item.id, "p1");
+  assert.equal(found.body.item.durationMs, 5400000);
+  assert.equal(found.body.item.watchUrl, `${fakeOrigin}/Mediasite/Play/p1`);
+  assert.match(found.body.item.thumbnail, /^\/thumb\?u=/);
+
+  const missing = await get("/presentation.json?id=nope");
+  assert.equal(missing.status, 404);
+  assert.deepEqual(missing.body, { error: "Presentation not found" });
+
+  assert.equal((await get("/presentation.json")).status, 400);
+  assert.equal((await get("/presentation.json?id=a'b")).status, 400);
 });
 
 test("analytics routes require an id", async () => {

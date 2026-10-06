@@ -31,3 +31,20 @@ export function fmtDuration(ms?: number) {
     String(s).padStart(2, "0")
   );
 }
+
+// "45s", "12m 4s", "1h 5m": a length of time in seconds, in words.
+export function fmtSpan(seconds: number) {
+  const total = Math.round(seconds);
+  const h = Math.floor(total / 3600),
+    m = Math.floor((total % 3600) / 60),
+    s = total % 60;
+  if (h) return `${h}h ${m}m`;
+  if (m) return s ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
+}
+
+// "5:30": a position in a recording, as minutes and seconds.
+export function fmtClock(seconds: number) {
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}

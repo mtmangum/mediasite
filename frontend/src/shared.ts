@@ -37,6 +37,7 @@ export interface Presentation {
   presenter?: string;
   views?: number;
   viewsReady?: boolean;
+  viewsStale?: boolean; // the live total was unavailable, so the list's lagging count is shown
   folder?: string;
   isLive?: boolean;
   thumbnail?: string;
@@ -60,6 +61,14 @@ export interface Analytics {
   fetchedAt: string;
 }
 
+// One anonymous viewing session; no viewer identity is included.
+export interface SessionRecord {
+  opened: string;
+  watched: number | null;
+  coverage: number | null;
+  device: "mobile" | "desktop" | "other";
+}
+
 export interface ViewingCharts {
   timeline:
     | {
@@ -78,6 +87,8 @@ export interface ViewingCharts {
     unknownSeconds: number;
   } | null;
   histogramError: string | null;
+  sessions: SessionRecord[] | null;
+  viewers: { distinct: number; returning: number } | null;
   requests: { endpoint: string; status: number; ms: number }[];
   fetchedAt: string;
 }

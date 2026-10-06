@@ -65,6 +65,9 @@
   line-height: 1.4;
   white-space: nowrap;
 }
+.views-tag[data-stale] {
+  border-style: dashed;
+}
 .views-tag[data-tier="low"] {
   --tag-bg: #ffead6;
   --tag-fg: #8a3b00;
@@ -160,6 +163,18 @@ dd {
 }
 .card dt {
   font-size: var(--text-small);
+}
+/* Two quiet accents for card text: burnt orange for the course code, slate blue for people. */
+:root {
+  --ink-course: #a84b00;
+  --ink-person: #2a5d8f;
+}
+:root[data-theme="dark"] {
+  --ink-course: #f8971f;
+  --ink-person: #8fb8e8;
+}
+.card dd.person {
+  color: var(--ink-person);
 }
 .watch {
   display: flex;

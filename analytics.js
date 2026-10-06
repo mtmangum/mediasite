@@ -105,6 +105,42 @@ function durationHistogram(rows) {
   };
 }
 
+// "mobile" / "desktop" / "other", from the session's operating system and browser names.
+function deviceClass(row) {
+  const text = `${row.System || ""} ${row.Browser || ""}`;
+  if (/iphone|ipad|ipod|android|mobile|tablet/i.test(text)) return "mobile";
+  if (/windows|mac|linux|chrome ?os|cros|ubuntu|desktop/i.test(text))
+    return "desktop";
+  return "other";
+}
+
+// Anonymous per-session records plus viewer counts. IP addresses, user names, and
+// playback tickets are used only to count distinct and returning viewers; they never leave.
+function sessionSummary(rows) {
+  const sessions = [];
+  const visits = new Map();
+  for (const row of rows) {
+    const opened = new Date(row.Opened);
+    if (Number.isNaN(opened.getTime())) continue;
+    sessions.push({
+      opened: opened.toISOString(),
+      watched: nonnegative(row.TimeWatchedSeconds),
+      coverage: nonnegative(row.CoverageWatchedSeconds),
+      device: deviceClass(row),
+    });
+    const who = row.IPAddress || row.HostName;
+    if (who) visits.set(who, (visits.get(who) || 0) + 1);
+  }
+  sessions.sort((a, b) => a.opened.localeCompare(b.opened));
+  return {
+    sessions,
+    viewers: {
+      distinct: visits.size,
+      returning: [...visits.values()].filter((n) => n > 1).length,
+    },
+  };
+}
+
 async function getViewingCharts(cfg, id, request = callApi) {
   validateId(id);
   const endpoint = `/PresentationAnalytics('${id}')`;
@@ -143,7 +179,7 @@ async function getViewingCharts(cfg, id, request = callApi) {
     }
     return rows;
   }
-  const [timelineResult, histogramResult] = await Promise.allSettled([
+  const [timelineResult, sessionsResult] = await Promise.allSettled([
     collection(`${endpoint}/ViewingTrends?$top=1000`).then((rows) =>
       rows
         .map((row) => {
@@ -157,8 +193,11 @@ async function getViewingCharts(cfg, id, request = callApi) {
         .sort((a, b) => a.startSeconds - b.startSeconds),
     ),
     collection(
-      `${endpoint}/ViewingSessions?$select=TimeWatchedSeconds&$top=1000`,
-    ).then(durationHistogram),
+      `${endpoint}/ViewingSessions?$select=Opened,TimeWatchedSeconds,CoverageWatchedSeconds,System,Browser,IPAddress&$top=1000`,
+    ).then((rows) => ({
+      histogram: durationHistogram(rows),
+      ...sessionSummary(rows),
+    })),
   ]);
   return {
     timeline:
@@ -168,10 +207,20 @@ async function getViewingCharts(cfg, id, request = callApi) {
         ? timelineResult.reason.message
         : null,
     histogram:
-      histogramResult.status === "fulfilled" ? histogramResult.value : null,
+      sessionsResult.status === "fulfilled"
+        ? sessionsResult.value.histogram
+        : null,
     histogramError:
-      histogramResult.status === "rejected"
-        ? histogramResult.reason.message
+      sessionsResult.status === "rejected"
+        ? sessionsResult.reason.message
+        : null,
+    sessions:
+      sessionsResult.status === "fulfilled"
+        ? sessionsResult.value.sessions
+        : null,
+    viewers:
+      sessionsResult.status === "fulfilled"
+        ? sessionsResult.value.viewers
         : null,
     requests,
     fetchedAt: new Date().toISOString(),

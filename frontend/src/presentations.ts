@@ -3,7 +3,12 @@ import { fetchJson } from "./http";
 import { store } from "./store";
 import { queueHealth } from "./health";
 import { cyclePreview, observePreviews } from "./previews";
-import { expandAnalytics, loadAnalytics } from "./analytics";
+import {
+  expandAnalytics,
+  loadAnalytics,
+  openChartsFromRoute,
+} from "./analytics";
+import { chartsFor } from "./route";
 import {
   cardMarkup,
   refreshViewsTag,
@@ -11,7 +16,12 @@ import {
   trackThumbnails,
 } from "./cards";
 import { loadLiveViews } from "./live-views";
-import { filterPresentations, paginate, sortPresentations } from "./list";
+import {
+  filterPresentations,
+  newPresentations,
+  paginate,
+  sortPresentations,
+} from "./list";
 import { pageControlsMarkup, renderPageControls } from "./pagination";
 import { findPresentation } from "./store";
 import { element, errorMessage, type Presentation } from "./shared";
@@ -19,7 +29,15 @@ import { element, errorMessage, type Presentation } from "./shared";
 const PAGE_SIZE = 9;
 const flipped = new Set<string>();
 let currentPage = 1;
-let viewsRun = 0; // identifies the latest load, so stale view batches are ignored
+// How often to quietly look for new recordings; `?poll=<seconds>` overrides it (for testing).
+const CHECK_MS =
+  Number(new URLSearchParams(location.search).get("poll")) * 1000 ||
+  3 * 60 * 1000;
+let pendingItems: Presentation[] | null = null; // the latest list, once it has new recordings
+let loading = false;
+let lastCheck = Date.now();
+let viewsRun = 0;
+let routeOpened = false; // identifies the latest load, so stale view batches are ignored
 
 const state = element("state");
 const list = element("list");
@@ -84,7 +102,61 @@ function hydrateViews(fresh: boolean) {
   });
 }
 
+function showNewRecordings(count: number) {
+  element("newRecordingsText").textContent =
+    `${count} new recording${count === 1 ? "" : "s"} available`;
+  element("newRecordings").hidden = false;
+}
+function hideNewRecordings() {
+  pendingItems = null;
+  element("newRecordings").hidden = true;
+}
+
+// Quietly looks for recordings the page doesn't have yet, and offers them rather than
+// reshuffling the list under the reader.
+async function checkForNew() {
+  lastCheck = Date.now();
+  if (document.hidden || loading) return;
+  try {
+    const { items } = await fetchJson<{ items: Presentation[] }>(
+      "/recent.json",
+    );
+    const fresh = newPresentations(store.items, items);
+    if (loading) return;
+    if (fresh.length) {
+      pendingItems = items;
+      showNewRecordings(fresh.length);
+    } else hideNewRecordings();
+  } catch {
+    /* try again at the next interval */
+  }
+}
+
+function showPending() {
+  if (!pendingItems) return;
+  store.items = pendingItems;
+  hideNewRecordings();
+  currentPage = 1;
+  render();
+  hydrateViews(false);
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+// A shared link (/recent/<id>/charts) opens that presentation's charts once the page is ready.
+async function openRouteIfAny() {
+  const id = chartsFor(location.pathname);
+  if (!id || routeOpened) return;
+  routeOpened = true;
+  if (await openChartsFromRoute(id)) return;
+  state.hidden = false;
+  state.className = "bad";
+  state.textContent =
+    "That presentation couldn't be found, so its charts can't be opened.";
+}
+
 async function load(fresh = false) {
+  loading = true;
+  hideNewRecordings();
   refresh.disabled = true;
   state.hidden = false;
   state.className = "sr-only";
@@ -99,11 +171,14 @@ async function load(fresh = false) {
     currentPage = 1;
     render();
     hydrateViews(fresh);
+    void openRouteIfAny();
   } catch (e) {
     list.innerHTML = "";
     state.className = "bad";
     state.textContent = "Could not refresh presentations: " + errorMessage(e);
   } finally {
+    loading = false;
+    lastCheck = Date.now();
     refresh.disabled = false;
   }
 }
@@ -182,4 +257,10 @@ document
 search.oninput = resetPage;
 sort.onchange = resetPage;
 refresh.onclick = () => void load(true);
+element("showNew").onclick = showPending;
+setInterval(() => void checkForNew(), CHECK_MS);
+// Catch up promptly when a long-hidden tab comes back.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - lastCheck > CHECK_MS) void checkForNew();
+});
 void load();

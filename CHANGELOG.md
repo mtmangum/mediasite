@@ -6,6 +6,11 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Added
 
+- Redesigned viewing analytics: a headline row (sessions, typical watch time, share who watched nearly all, viewers and returning viewers, busiest day, most-replayed moment), plain-language insights, an engagement timeline with its most-replayed moment labelled, views by day, a weekday-by-hour heatmap of when people watch, a retention curve of how long people stay (median marked), and a device and returning-viewer panel. Charts read by hover or tap (a tooltip anchored to the mark), arrow keys on the focused timeline and retention curve, and a table behind every chart. The scrub slider is gone. Colors were checked with the dataviz palette validator (orange and blue, plus neutral gray, in light and dark).
+- Shareable links for the viewing charts: `/recent/<presentation-id>/charts` opens the page with that presentation's charts dialog open. Opening the dialog updates the URL; Back and Forward move between the list and the charts, closing returns to `/recent`, and a **Copy link** button sits in the dialog header. Recordings outside the latest 100 are fetched by id (`/presentation.json`), and an unknown id shows a message instead of an empty dialog.
+- Session summaries on `/viewing.json` are anonymous (device class, open time, watch time, coverage) with viewer counts by network address; IP addresses, user names, and playback tickets never leave the server.
+- Quiet check for new recordings: every three minutes (and when a long-hidden tab returns) the page looks for recordings it doesn't have yet and offers them in a “N new recordings available · Show” prompt instead of reshuffling the list. `?poll=<seconds>` changes the interval for testing.
+- View counts that fall back to the list's lagging number (because the live lookup failed) are shown with an asterisk, a dashed outline, and an explanatory tooltip instead of silently showing a wrong count.
 - Tests for the front-end list logic (filtering, sorting, pagination, view tiers, formatting), course-title parsing, the Mediasite helpers, and the server's HTTP surface against a fake Mediasite.
 - “Most viewed” sort option (ties fall back to newest first).
 - Cached later-frame thumbnails with a timestamped control to cycle through samples; viewport-triggered, serialized extraction keeps initial card rendering fast and preserves original thumbnails on failure.
@@ -17,6 +22,9 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- Course titles parse far more often (398 of 400 titles in the library, up from 347): cross-listed courses (`M E 336P/N E 336P`), codes with no dash or space (`CS311-…`), decimal and sub-sections (`ENM 382E.2`, `ECE 382N-11`), lone-surname instructors, recording-number suffixes (`_013`), and titles repeated around a dash. Non-course titles still lose their trailing record date. The charts dialog shows the parsed course and title instead of the raw file name.
+- Course codes are burnt orange (orange on dark) and instructor and presenter names are slate blue on the cards, for a little color without distraction.
+- Paired chart cards in the viewing analytics are the same height, with their data tables and notes pinned to the bottom.
 - Pagination is shorter: page numbers collapse into a window of at most seven slots (for example `1 … 5 6 7 … 12`) instead of listing every page.
 - “Little visual change” is now reserved for recordings where nothing changes anywhere in the frame (an idle screen, an empty room with no movement). Frames are compared at 192×108 grayscale and flagged only when fewer than 1% of pixels differ between samples, so handwriting, slide changes, and people moving no longer trigger it; on 14 real recordings the old rule flagged 5 and the new one flags only the genuinely idle lock screen. Cached previews are regenerated once to apply the new rule.
 - Previews cycle only while a card is hovered: frames step through the samples in recording order every 1.5 seconds with a crossfade, and idle cards stay still. The cycle button appears only on hover or keyboard focus (touch screens always show it), and automatic stepping is off under reduced motion.

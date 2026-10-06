@@ -104,9 +104,11 @@ test("charts follow pagination, preserve timeline zeros, and aggregate session d
   assert.equal(data.histogram.unknownSeconds, 2);
   assert.equal(data.histogram.watchedSessions, 4);
   assert.equal(data.requests.length, 3);
-  assert.ok(paths.some((path) => path.includes("$select=TimeWatchedSeconds")));
+  assert.ok(
+    paths.some((path) => /\$select=[^&]*TimeWatchedSeconds/.test(path)),
+  );
   assert.doesNotMatch(
-    JSON.stringify(data),
+    JSON.stringify({ ...data, requests: undefined }),
     /private-name|private-address|UserName|IPAddress/,
   );
 });
@@ -173,7 +175,7 @@ test("incomplete or foreign pagination is unavailable rather than a partial hist
   for (const nextLink of [
     "https://foreign.test/data",
     chartsConfig.baseUrl +
-      `/PresentationAnalytics('${id}')/ViewingSessions?$select=TimeWatchedSeconds&$top=1000`,
+      `/PresentationAnalytics('${id}')/ViewingSessions?$select=Opened,TimeWatchedSeconds,CoverageWatchedSeconds,System,Browser,IPAddress&$top=1000`,
   ]) {
     const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
       reply({
@@ -195,5 +197,65 @@ test("chart requests reject invalid IDs before contacting Mediasite", async () =
       throw Error("must not be called");
     }),
     { status: 400 },
+  );
+});
+
+test("session summaries are anonymous, classify devices, and count returning viewers", async () => {
+  const sessions = [
+    {
+      Opened: "2026-10-03T19:00:00Z",
+      TimeWatchedSeconds: 600,
+      CoverageWatchedSeconds: 500,
+      System: "Mac OS X",
+      Browser: "Chrome",
+      IPAddress: "10.0.0.1",
+      UserName: "ann",
+    },
+    {
+      Opened: "2026-10-02T08:00:00Z",
+      TimeWatchedSeconds: 0,
+      CoverageWatchedSeconds: 0,
+      System: "iPhone",
+      Browser: "Chrome Mobile",
+      IPAddress: "10.0.0.2",
+      UserName: "bob",
+    },
+    {
+      Opened: "2026-10-04T08:30:00Z",
+      TimeWatchedSeconds: "90",
+      CoverageWatchedSeconds: "90",
+      System: "Windows 10",
+      Browser: "Edge",
+      IPAddress: "10.0.0.1",
+      UserName: "ann",
+    },
+    {
+      Opened: "2026-10-05T08:30:00Z",
+      TimeWatchedSeconds: 30,
+      System: "Plan 9",
+      Browser: "Lynx",
+      IPAddress: "10.0.0.3",
+    },
+    { Opened: "not a date", TimeWatchedSeconds: 5, IPAddress: "10.0.0.4" },
+  ];
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+    req.path.includes("ViewingTrends")
+      ? reply({ value: [{ StartTime: 0, Duration: 30, Views: 1 }] })
+      : reply({ value: sessions }),
+  );
+  assert.deepEqual(
+    data.sessions.map((s) => [s.opened, s.watched, s.coverage, s.device]),
+    [
+      ["2026-10-02T08:00:00.000Z", 0, 0, "mobile"],
+      ["2026-10-03T19:00:00.000Z", 600, 500, "desktop"],
+      ["2026-10-04T08:30:00.000Z", 90, 90, "desktop"],
+      ["2026-10-05T08:30:00.000Z", 30, null, "other"],
+    ],
+    "sorted by open time; unparseable dates skipped; devices classified",
+  );
+  assert.deepEqual(data.viewers, { distinct: 3, returning: 1 });
+  assert.doesNotMatch(
+    JSON.stringify({ ...data, requests: undefined }),
+    /10\.0\.0|ann|bob|UserName|IPAddress|HostName|PlaybackTicket/,
   );
 });

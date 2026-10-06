@@ -125,6 +125,10 @@
           hidden
         ></nav>
       </div>
+      <div id="newRecordings" class="new-recordings" hidden>
+        <span id="newRecordingsText" role="status"></span>
+        <button id="showNew" class="secondary">Show</button>
+      </div>
       <div id="state" class="sr-only" role="status">Loading presentations…</div>
       <div
         id="list"
@@ -153,9 +157,14 @@
           <h2 id="analyticsTitle"></h2>
           <p id="analyticsCourse" class="muted"></p>
         </div>
-        <form method="dialog">
-          <button class="secondary" autofocus>Close ×</button>
-        </form>
+        <div class="head-actions">
+          <button id="copyChartsLink" class="secondary" type="button">
+            Copy link
+          </button>
+          <form method="dialog">
+            <button class="secondary" autofocus>Close ×</button>
+          </form>
+        </div>
       </div>
       <div class="expanded-toolbar">
         <p class="muted">All-time viewing activity</p>

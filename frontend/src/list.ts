@@ -30,6 +30,15 @@ export function sortPresentations(items: Presentation[], sort: string) {
   return items.sort(comparators[sort as SortKey] ?? comparators.newest);
 }
 
+// Presentations in `incoming` that the page doesn't have yet.
+export function newPresentations(
+  known: Presentation[],
+  incoming: Presentation[],
+) {
+  const seen = new Set(known.map((p) => p.id));
+  return incoming.filter((p) => !seen.has(p.id));
+}
+
 export interface Page {
   currentPage: number;
   pageCount: number;

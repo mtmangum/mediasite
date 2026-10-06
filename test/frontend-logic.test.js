@@ -171,3 +171,39 @@ test("the page window stays within seven slots and always shows first, current, 
       );
     }
 });
+
+test("new presentations are those the page has not seen, in the incoming order", async () => {
+  const { newPresentations } = await load("list");
+  const known = [presentation("a"), presentation("b")];
+  const incoming = [presentation("c"), presentation("a"), presentation("d")];
+  assert.deepEqual(
+    newPresentations(known, incoming).map((p) => p.id),
+    ["c", "d"],
+  );
+  assert.deepEqual(newPresentations(known, known), []);
+  assert.deepEqual(newPresentations([], incoming).length, 3);
+});
+
+test("shareable chart links parse to a presentation id and build back", async () => {
+  const { chartsFor, chartsPath, LIST_PATH } = await load("route");
+  assert.equal(LIST_PATH, "/recent");
+  assert.equal(
+    chartsFor("/recent/ee17f8d604b24829/charts"),
+    "ee17f8d604b24829",
+  );
+  assert.equal(chartsFor("/recent/abc_DEF-123/charts/"), "abc_DEF-123");
+  for (const path of [
+    "/recent",
+    "/recent/",
+    "/recent/abc",
+    "/recent/abc/charts/extra",
+    "/recent//charts",
+    "/other/abc/charts",
+    "/recent/a b/charts",
+    "/",
+  ])
+    assert.equal(chartsFor(path), null, path);
+  assert.equal(chartsPath("abc123"), "/recent/abc123/charts");
+  assert.equal(chartsFor(chartsPath("abc123")), "abc123", "round trip");
+  assert.equal(chartsPath("a/b"), "/recent/a%2Fb/charts", "ids are encoded");
+});

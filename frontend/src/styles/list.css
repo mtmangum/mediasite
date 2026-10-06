@@ -19,6 +19,18 @@
 .toolbar .page-label {
   display: none;
 }
+.new-recordings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--ut-orange);
+  border-radius: var(--control-radius);
+  background: var(--soft);
+  font-size: var(--text-small);
+}
 .cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

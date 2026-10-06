@@ -42,6 +42,7 @@ export async function loadLiveViews(
       if (!p) continue;
       const live = totals[id];
       if (live) p.views = live.views;
+      p.viewsStale = !live;
       p.viewsReady = true;
     }
     options.onBatch(ids);

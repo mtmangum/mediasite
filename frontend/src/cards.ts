@@ -16,7 +16,10 @@ function viewsMarkup(p: Presentation) {
   if (!p.viewsReady)
     return '<span class="views-tag views-pending" role="status"><span class="sr-only">Loading view count…</span></span>';
   const count = p.views ?? 0;
-  return `<span class="views-tag" data-tier="${viewsTier(count)}">${count} ${count === 1 ? "view" : "views"}</span>`;
+  const stale = p.viewsStale
+    ? ' data-stale title="Live total unavailable — this is the list\'s count, which can lag by days"'
+    : "";
+  return `<span class="views-tag" data-tier="${viewsTier(count)}"${stale}>${count} ${count === 1 ? "view" : "views"}${p.viewsStale ? "*" : ""}</span>`;
 }
 
 // Swaps one card's view tag in place, leaving the rest of the card untouched.
@@ -40,7 +43,7 @@ function statusBadge(p: Presentation) {
 
 function instructorMarkup(p: Presentation) {
   const instructor = parseCourseTitle(p.title).instructor;
-  return `<dt>${instructor ? "Instructor" : "Presenter"}</dt><dd>${esc(instructor || p.presenter || "—")}</dd>`;
+  return `<dt>${instructor ? "Instructor" : "Presenter"}</dt><dd class="person">${esc(instructor || p.presenter || "—")}</dd>`;
 }
 
 function detailsMarkup(p: Presentation) {
