@@ -18,6 +18,8 @@ concurrency:
 
 jobs:
   build:
+    # The UT mirror keeps the source; only the public repository hosts this demo.
+    if: github.server_url == 'https://github.com' && github.repository == 'mtmangum/mediasite'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
