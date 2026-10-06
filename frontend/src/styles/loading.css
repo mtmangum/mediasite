@@ -21,6 +21,7 @@
 }
 .skeleton,
 .thumb-wrap[data-loading],
+.views-pending,
 .recording-health.checking .rc-label {
   --sk-base: var(--soft);
   --sk-hi: color-mix(in srgb, var(--soft), var(--fg) 12%);
@@ -35,6 +36,11 @@
 }
 .thumb-wrap[data-loading] > span {
   opacity: 0.35;
+}
+.views-pending {
+  width: 76px;
+  height: 24px;
+  border-color: transparent;
 }
 .recording-health.checking .rc-label {
   display: inline-block;
@@ -112,6 +118,7 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
   .thumb-wrap[data-loading],
+  .views-pending,
   .recording-health.checking .rc-label {
     animation: none;
   }

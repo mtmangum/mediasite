@@ -8,6 +8,7 @@ async function config(req, res, ctx) {
   if (req.method === "POST") {
     const updates = JSON.parse((await readBody(req)) || "{}");
     ctx.healthCache.clear();
+    ctx.viewsCache.clear();
     ctx.previews.clear();
     for (const key of ["baseUrl", "username", ...SECRETS]) {
       if (

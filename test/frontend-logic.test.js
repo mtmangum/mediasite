@@ -109,7 +109,12 @@ test("page controls show the range, current page, and disabled edges", async () 
     /data-page="2" aria-label="Next page"[^>]*disabled/,
   );
   assert.equal(first.match(/aria-current="page"/g).length, 1);
-  assert.equal(first.match(/class="secondary page-number"/g).length, 12);
+  assert.equal(
+    first.match(/class="secondary page-number"/g).length,
+    6,
+    "pages 1–5 and the last page, with a gap between",
+  );
+  assert.match(first, /class="page-gap"/);
 
   const last = pageControlsMarkup(12, 12, 99, 1, 100);
   assert.match(last, /Showing <strong>100–100<\/strong>/);
@@ -135,4 +140,34 @@ test("durations format as m:ss or h:mm:ss, with a dash when unknown", async () =
   assert.equal(fmtDuration(90000), "1:30");
   assert.equal(fmtDuration(3600000), "1:00:00");
   assert.equal(fmtDuration(5405002), "1:30:05");
+});
+
+test("the page window stays within seven slots and always shows first, current, and last", async () => {
+  const { pageWindow } = await load("pagination");
+  assert.deepEqual(pageWindow(1, 1), [1]);
+  assert.deepEqual(pageWindow(3, 5), [1, 2, 3, 4, 5]);
+  assert.deepEqual(pageWindow(4, 7), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(pageWindow(1, 12), [1, 2, 3, 4, 5, "…", 12]);
+  assert.deepEqual(pageWindow(4, 12), [1, 2, 3, 4, 5, "…", 12]);
+  assert.deepEqual(pageWindow(5, 12), [1, "…", 4, 5, 6, "…", 12]);
+  assert.deepEqual(pageWindow(8, 12), [1, "…", 7, 8, 9, "…", 12]);
+  assert.deepEqual(pageWindow(9, 12), [1, "…", 8, 9, 10, 11, 12]);
+  assert.deepEqual(pageWindow(12, 12), [1, "…", 8, 9, 10, 11, 12]);
+  for (const count of [8, 9, 12, 40])
+    for (let current = 1; current <= count; current++) {
+      const window = pageWindow(current, count);
+      assert.ok(window.length <= 7, `${current}/${count}`);
+      assert.ok(
+        window.includes(current),
+        `${current}/${count} shows the current page`,
+      );
+      assert.equal(window[0], 1);
+      assert.equal(window.at(-1), count);
+      const numbers = window.filter((p) => p !== "…");
+      assert.deepEqual(
+        numbers,
+        [...numbers].sort((a, b) => a - b),
+        "ascending",
+      );
+    }
 });

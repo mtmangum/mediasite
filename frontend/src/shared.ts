@@ -36,6 +36,7 @@ export interface Presentation {
   owner?: string;
   presenter?: string;
   views?: number;
+  viewsReady?: boolean;
   folder?: string;
   isLive?: boolean;
   thumbnail?: string;

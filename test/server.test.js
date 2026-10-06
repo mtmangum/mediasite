@@ -66,6 +66,21 @@ before(async () => {
         "application/json",
         JSON.stringify({ value: presentations(fakeOrigin) }),
       );
+    const analytics = /\/PresentationAnalytics\('(\w+)'\)/.exec(req.url);
+    if (analytics) {
+      const totals = { p1: 7, p2: 0 };
+      return analytics[1] in totals
+        ? reply(
+            200,
+            "application/json",
+            JSON.stringify({
+              TotalViews: totals[analytics[1]],
+              TotalUsers: 2,
+              LastWatched: "2026-10-05T12:00:00",
+            }),
+          )
+        : reply(404, "application/json", "{}");
+    }
     if (req.url.startsWith("/Mediasite/FileServer/"))
       return reply(200, "image/jpeg", JPEG);
     reply(404, "application/json", "{}");
@@ -204,6 +219,43 @@ test("Mediasite rejections surface as errors, and config updates take effect", a
 
   await post("/config", { username: "tester" });
   assert.equal((await get("/recent.json")).status, 200);
+});
+
+test("/views.json returns live totals, tolerates missing presentations, and caches", async () => {
+  const analyticsCalls = (id) =>
+    seen.filter((r) => r.url.includes(`PresentationAnalytics('${id}')`)).length;
+
+  const first = await get("/views.json?ids=p1,p2,missing");
+  assert.equal(first.status, 200);
+  assert.deepEqual(first.body.views.p1, {
+    views: 7,
+    users: 2,
+    lastWatched: "2026-10-05T12:00:00",
+  });
+  assert.equal(first.body.views.p2.views, 0);
+  assert.equal(first.body.views.missing, null, "unknown ids come back null");
+
+  const callsAfterFirst = analyticsCalls("p1");
+  await get("/views.json?ids=p1");
+  assert.equal(
+    analyticsCalls("p1"),
+    callsAfterFirst,
+    "a second request is cached",
+  );
+  await get("/views.json?ids=p1&fresh=1");
+  assert.equal(
+    analyticsCalls("p1"),
+    callsAfterFirst + 1,
+    "fresh=1 bypasses the cache",
+  );
+});
+
+test("/views.json rejects missing, malformed, or excessive ids", async () => {
+  assert.equal((await get("/views.json")).status, 400);
+  assert.equal((await get("/views.json?ids=p1,bad/id")).status, 400);
+  assert.equal((await get("/views.json?ids=a'b")).status, 400);
+  const tooMany = Array.from({ length: 101 }, (_, i) => `id${i}`).join(",");
+  assert.equal((await get(`/views.json?ids=${tooMany}`)).status, 400);
 });
 
 test("analytics routes require an id", async () => {

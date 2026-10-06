@@ -7,7 +7,8 @@
   margin-bottom: 16px;
 }
 .toolbar input {
-  flex: 1 1 260px;
+  flex: 1 1 140px;
+  min-width: 120px;
 }
 .toolbar .page-controls {
   margin-left: auto;
@@ -70,6 +71,12 @@
   background: var(--soft);
   border-color: var(--ut-orange);
   color: var(--fg);
+}
+.page-controls .page-gap {
+  min-width: 14px;
+  color: var(--muted);
+  text-align: center;
+  user-select: none;
 }
 .page-controls button:disabled {
   cursor: default;

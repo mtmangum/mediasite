@@ -5,4 +5,5 @@ module.exports = [
   ...require("./analytics"),
   ...require("./health"),
   ...require("./previews"),
+  ...require("./views"),
 ];

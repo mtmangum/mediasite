@@ -15,6 +15,7 @@ const dev = process.argv.includes("--dev");
 const ctx = {
   overrides: {},
   healthCache: new Map(),
+  viewsCache: new Map(),
   previews: createPreviewService(),
   config: () => getConfig(ctx.overrides),
 };

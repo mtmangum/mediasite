@@ -4,14 +4,22 @@ import { store } from "./store";
 import { queueHealth } from "./health";
 import { cyclePreview, observePreviews } from "./previews";
 import { expandAnalytics, loadAnalytics } from "./analytics";
-import { cardMarkup, skeletonCards, trackThumbnails } from "./cards";
+import {
+  cardMarkup,
+  refreshViewsTag,
+  skeletonCards,
+  trackThumbnails,
+} from "./cards";
+import { loadLiveViews } from "./live-views";
 import { filterPresentations, paginate, sortPresentations } from "./list";
 import { pageControlsMarkup, renderPageControls } from "./pagination";
+import { findPresentation } from "./store";
 import { element, errorMessage, type Presentation } from "./shared";
 
 const PAGE_SIZE = 9;
 const flipped = new Set<string>();
 let currentPage = 1;
+let viewsRun = 0; // identifies the latest load, so stale view batches are ignored
 
 const state = element("state");
 const list = element("list");
@@ -50,7 +58,33 @@ function render() {
   observePreviews();
 }
 
-async function load() {
+// Fetches live view totals for the visible cards first, then the rest in the background.
+function hydrateViews(fresh: boolean) {
+  const run = ++viewsRun;
+  const visibleIds = Array.from(
+    list.querySelectorAll<HTMLElement>(".card[data-id]"),
+    (card) => card.dataset.id!,
+  );
+  void loadLiveViews(
+    visibleIds,
+    store.items.map((p) => p.id),
+    {
+      fresh,
+      isCurrent: () => run === viewsRun,
+      onBatch: (ids) => {
+        ids.forEach((id) => {
+          const p = findPresentation(id);
+          if (p) refreshViewsTag(p);
+        });
+      },
+    },
+  ).then(() => {
+    // Counts changed, so a views sort may need a new order.
+    if (run === viewsRun && sort.value === "views") render();
+  });
+}
+
+async function load(fresh = false) {
   refresh.disabled = true;
   state.hidden = false;
   state.className = "sr-only";
@@ -64,6 +98,7 @@ async function load() {
     ).items;
     currentPage = 1;
     render();
+    hydrateViews(fresh);
   } catch (e) {
     list.innerHTML = "";
     state.className = "bad";
@@ -86,9 +121,7 @@ function changePage(event: Event) {
   if (page === currentPage) return;
   const controls = button.closest<HTMLElement>("[data-page-controls]")!;
   const fromBottom = !!controls.closest("#pagination");
-  const buttonIndex = Array.from(controls.querySelectorAll("button")).indexOf(
-    button,
-  );
+  const nav = button.dataset.nav;
   const { scrollX, scrollY } = window;
   currentPage = page;
   render();
@@ -96,8 +129,10 @@ function changePage(event: Event) {
     list.focus({ preventScroll: true });
     list.scrollIntoView({ block: "start" });
   } else {
-    // Rendering replaces the buttons; retain focus for repeated navigation.
-    const replacement = controls.querySelectorAll("button")[buttonIndex];
+    // Rendering replaces the buttons; keep focus on the same control for repeated navigation.
+    const replacement = controls.querySelector<HTMLButtonElement>(
+      nav ? `[data-nav="${nav}"]` : `[data-page="${page}"]`,
+    );
     const focusTarget = replacement?.disabled
       ? controls.querySelector<HTMLButtonElement>('[aria-current="page"]')
       : replacement;
@@ -146,5 +181,5 @@ document
   .forEach((controls) => controls.addEventListener("click", changePage));
 search.oninput = resetPage;
 sort.onchange = resetPage;
-refresh.onclick = load;
+refresh.onclick = () => void load(true);
 void load();

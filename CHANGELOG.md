@@ -17,6 +17,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- Pagination is shorter: page numbers collapse into a window of at most seven slots (for example `1 … 5 6 7 … 12`) instead of listing every page.
 - “Little visual change” is now reserved for recordings where nothing changes anywhere in the frame (an idle screen, an empty room with no movement). Frames are compared at 192×108 grayscale and flagged only when fewer than 1% of pixels differ between samples, so handwriting, slide changes, and people moving no longer trigger it; on 14 real recordings the old rule flagged 5 and the new one flags only the genuinely idle lock screen. Cached previews are regenerated once to apply the new rule.
 - Previews cycle only while a card is hovered: frames step through the samples in recording order every 1.5 seconds with a crossfade, and idle cards stay still. The cycle button appears only on hover or keyboard focus (touch screens always show it), and automatic stepping is off under reduced motion.
 - The “Viewable” status badge is hidden on cards, since every listed presentation is viewable; LIVE (or any other status) still gets a badge. The view-count tag now sits at the left of the card header.
@@ -36,6 +37,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Fixed
 
+- View counts on the cards were far too low: the presentation list's own `NumberOfViews` is a lagging roll-up (every recording created on 09-28 read 0 while analytics showed 95 views; across the latest 100 it reported 368 against 596 real). Counts now come from each presentation's `PresentationAnalytics` total, fetched through a cached `/views.json` route (visible cards first, then the rest, with a shimmering placeholder until each arrives), so the tags, tiers, and “Most viewed” sort match the analytics on the back of the card.
 - Recording warnings use a proper warning icon (triangle with exclamation mark) instead of a plain “△” that read as a delta.
 - Top pagination preserves scroll position and keyboard focus; bottom pagination brings the new results into view instead of aligning the search bar with the top of the window.
 

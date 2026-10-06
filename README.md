@@ -122,6 +122,16 @@ revision-aware images are cached locally for seven days under `.cache/thumbnails
 with a limit of 100 recordings. This directory is ignored by Git. Credentials and
 source video URLs stay server-side; Mediasite's original thumbnails are unchanged.
 
+## About view counts
+
+The presentation list's `NumberOfViews` is a lagging roll-up: new recordings read 0 for
+days even when they are being watched. The cards therefore show `TotalViews` from each
+presentation's `PresentationAnalytics` record, the same number as the back of the card.
+`/PresentationAnalytics` ignores `$filter` and `$orderby` and fails on `or` filters, so
+totals are looked up one presentation at a time (eight in parallel, visible cards first),
+cached on the server for five minutes, and bypassed by the **Refresh** button. A shimmering
+placeholder stands in until each count arrives; if a lookup fails, the list's count is used.
+
 ## What needs which credentials
 
 | Endpoint                    | Anonymous | API key only          | API key + login |
@@ -145,7 +155,7 @@ source video URLs stay server-side; Mediasite's original thumbnails are unchange
 Back end (Node, no dependencies):
 
 - `server.js` — entry point: shared state, route dispatch, static files, optional Vite dev middleware
-- `routes/` — one module per concern: `connection.js` (`/config`, `/request`), `presentations.js` (`/recent.json`, `/thumb`), `analytics.js` (`/analytics.json`, `/viewing.json`), `health.js` (`/health.json`), `previews.js` (`/preview.json`, `/preview`)
+- `routes/` — one module per concern: `connection.js` (`/config`, `/request`), `presentations.js` (`/recent.json`, `/thumb`), `analytics.js` (`/analytics.json`, `/viewing.json`), `views.js` (`/views.json?ids=…`), `health.js` (`/health.json`), `previews.js` (`/preview.json`, `/preview`)
 - `static.js` / `http-utils.js` — static file serving and request/response helpers
 - `mediasite.js` — connection config, auth headers (`authHeaders`), and request helper
 - `thumbnails.js` — bounded frame extraction, visual review signals, and local preview caching
@@ -161,7 +171,7 @@ Front end (Vite + TypeScript):
 - `frontend/src/list.ts` — pure filtering, sorting, and pagination
 - `frontend/src/cards.ts` — card markup, view-count tiers, skeleton placeholders
 - `frontend/src/pagination.ts` — page-status and page-button markup
-- `frontend/src/health.ts` / `previews.ts` / `analytics.ts` — per-card recording checks, frame previews, and analytics
+- `frontend/src/health.ts` / `previews.ts` / `analytics.ts` / `live-views.ts` — per-card recording checks, frame previews, analytics, and live view totals
 - `frontend/src/viewing-charts.ts` — expanded analytics charts and segment inspection
 - `frontend/src/shared.ts` / `format.ts` / `http.ts` / `store.ts` — shared types, formatting and escaping, JSON fetch helpers, loaded-list state
 - `frontend/src/style.css` — imports `frontend/src/styles/*.css` in cascade order (base, layout, explorer, list, cards, responsive, card-flip, analytics, dialog, charts, card-extras, loading)

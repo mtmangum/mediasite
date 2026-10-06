@@ -11,9 +11,23 @@ function courseMarkup(p: Presentation, link = false) {
   return `<div class="course-heading">${parsed.course ? `<div class="course-line"><span class="course-code">${esc(parsed.course)}</span><span class="course-section">${label} ${esc(parsed.sections)}</span></div>` : ""}<h2>${link ? `<a href="${esc(p.watchUrl)}" target="_blank" rel="noopener">${esc(parsed.title)}</a>` : esc(parsed.title)}</h2></div>`;
 }
 
-function viewsMarkup(views?: number) {
-  const count = views ?? 0;
+// A shimmering pill stands in until the live count arrives (the list's own count lags by days).
+function viewsMarkup(p: Presentation) {
+  if (!p.viewsReady)
+    return '<span class="views-tag views-pending" role="status"><span class="sr-only">Loading view count…</span></span>';
+  const count = p.views ?? 0;
   return `<span class="views-tag" data-tier="${viewsTier(count)}">${count} ${count === 1 ? "view" : "views"}</span>`;
+}
+
+// Swaps one card's view tag in place, leaving the rest of the card untouched.
+export function refreshViewsTag(p: Presentation) {
+  document
+    .querySelector(`.card[data-id="${CSS.escape(p.id)}"] .card-meta .views-tag`)
+    ?.replaceWith(
+      Object.assign(document.createElement("template"), {
+        innerHTML: viewsMarkup(p),
+      }).content,
+    );
 }
 
 // "Viewable" is the norm for this list, so only unusual states (LIVE, other statuses) get a badge.
@@ -44,7 +58,7 @@ export function cardMarkup(p: Presentation, flipped: boolean) {
     <article class="card" data-id="${esc(p.id)}" data-flipped="${flipped}">
     <div class="card-body"><div class="card-face card-front" ${flipped ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap" ${p.isLive ? "" : "data-preview"} ${p.thumbnail ? "data-loading" : ""}><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span><button class="secondary preview-button" data-action="preview" hidden>Preview ↻</button></div>
     <div class="info">
-      <div class="card-meta">${viewsMarkup(p.views)}${statusBadge(p)}</div>
+      <div class="card-meta">${viewsMarkup(p)}${statusBadge(p)}</div>
       ${courseMarkup(p, true)}
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
       <dl>${instructorMarkup(p)}<dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd></dl>
