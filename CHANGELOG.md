@@ -16,7 +16,8 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
-- The “Showing 1–9 of 100 · Page 1 of 12” range now lives inside the pagination controls themselves, at the start of both the top and bottom controls (the top shows the compact range only), instead of as separate text below the cards.
+- Loading states use shimmer placeholders: skeleton cards while the list loads or refreshes, a sweeping highlight on thumbnails until the image arrives, a placeholder for pending recording checks, and skeleton blocks for analytics and viewing charts. Reduced-motion users get static placeholders.
+- The “Showing 1–9 of 100” range, with “Page 1 of 12” on a second line, now lives inside the pagination controls at the start of both the top and bottom controls (the top shows the range line only), with the numbers emphasized, instead of as separate text below the cards.
 - View counts on cards are now color-coded capsules: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime, and 21+ green (with correct singular “1 view”).
 - The presentation library now loads the 100 most recently created viewable presentations instead of 30.
 - Instructor now appears above Recorded on the card front.
@@ -27,6 +28,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Fixed
 
+- Recording warnings use a proper warning icon (triangle with exclamation mark) instead of a plain “△” that read as a delta.
 - Top pagination preserves scroll position and keyboard focus; bottom pagination brings the new results into view instead of aligning the search bar with the top of the window.
 
 ## [0.1.0] - 2026-10-06

@@ -64,7 +64,7 @@ function healthMarkup(p: Presentation) {
       : entry?.data
         ? "Recording checks"
         : "Checking recording…";
-  return `<details class="recording-health ${warnings.some((w) => w.severity === "warning") ? "has-warning" : ""}"><summary>${warnings.length ? '<span aria-hidden="true">△</span> ' : ""}${esc(label)}</summary><div>${warnings.map((w) => `<p><strong>${esc(w.label)}.</strong> ${esc(w.detail)}</p>`).join("")}${entry?.data ? `<p><strong>Files:</strong> ${esc(entry.data.media)}</p><p><strong>Audio:</strong> ${esc(entry.data.audio)}</p>` : `<p>${esc(entry?.error || "Media and audio-waveform metadata are being checked.")}</p>`}</div></details>`;
+  return `<details class="recording-health ${warnings.some((w) => w.severity === "warning") ? "has-warning" : ""} ${entry?.data || entry?.error ? "" : "checking"}"><summary>${warnings.length ? '<svg class="warn-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M8 1.5 15 14H1z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6v4" stroke="var(--panel)" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.8" r="0.9" fill="var(--panel)"/></svg> ' : ""}${esc(label)}</summary><div>${warnings.map((w) => `<p><strong>${esc(w.label)}.</strong> ${esc(w.detail)}</p>`).join("")}${entry?.data ? `<p><strong>Files:</strong> ${esc(entry.data.media)}</p><p><strong>Audio:</strong> ${esc(entry.data.audio)}</p>` : `<p>${esc(entry?.error || "Media and audio-waveform metadata are being checked.")}</p>`}</div></details>`;
 }
 function updateHealth(id: string) {
   const slot = Array.from(
@@ -269,7 +269,7 @@ function render() {
   const pageItems = visible.slice(start, start + pageSize);
   element("paginationTop").hidden = visible.length === 0;
   element("pagination").hidden = visible.length === 0;
-  const pageStatus = `<span class="page-status"><span>${start + 1}–${start + pageItems.length} of ${visible.length}</span><span class="page-of"> · Page ${currentPage} of ${pageCount}</span></span>`;
+  const pageStatus = `<span class="page-status"><span class="page-range">Showing <strong>${start + 1}–${start + pageItems.length}</strong> of <strong>${visible.length}</strong></span><span class="page-of">Page <strong>${currentPage}</strong> of ${pageCount}</span></span>`;
   const pageControls = `${pageStatus}<button class="secondary" data-page="${currentPage - 1}" aria-label="Previous page" title="Previous page" ${currentPage === 1 ? "disabled" : ""}>←<span class="page-label"> Previous</span></button>${Array.from(
     { length: pageCount },
     (_, index) => {
@@ -296,7 +296,7 @@ function render() {
     .map(
       (p) => `
     <article class="card" data-id="${esc(p.id)}" data-flipped="${flipped.has(p.id)}">
-    <div class="card-body"><div class="card-face card-front" ${flipped.has(p.id) ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap" ${p.isLive ? "" : "data-preview"}><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span><button class="secondary preview-button" data-action="preview" hidden>Preview ↻</button></div>
+    <div class="card-body"><div class="card-face card-front" ${flipped.has(p.id) ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap" ${p.isLive ? "" : "data-preview"} ${p.thumbnail ? "data-loading" : ""}><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span><button class="secondary preview-button" data-action="preview" hidden>Preview ↻</button></div>
     <div class="info">
       <div class="card-meta"><span class="badge">${p.isLive ? "LIVE" : esc(p.status || "Viewable")}</span>${viewsMarkup(p.views)}</div>
       ${courseMarkup(p, true)}
@@ -325,6 +325,7 @@ function render() {
     .querySelectorAll<HTMLImageElement>(".thumb")
     .forEach((img) => (img.onerror = () => img.remove()));
   queueHealth(pageItems);
+  trackThumbnails();
   observePreviews();
 }
 function metric(value: number | null) {
@@ -348,7 +349,7 @@ function platformMarkup(title: string, rows: Analytics["browsers"]) {
 function analyticsMarkup(id: string) {
   const entry = analytics.get(id);
   if (!entry || entry.loading)
-    return '<p class="analytics-state muted" role="status">Loading analytics…</p>';
+    return '<div class="analytics-state" role="status"><span class="sr-only">Loading analytics…</span><div class="sk-metrics" aria-hidden="true"><span class="skeleton sk-block"></span><span class="skeleton sk-block"></span><span class="skeleton sk-block"></span><span class="skeleton sk-block"></span></div></div>';
   if (entry.error)
     return `<p class="analytics-state bad" role="alert">${esc(entry.error)}</p>`;
   const data = entry.data!;
@@ -404,7 +405,7 @@ function updateViewing(id: string) {
   element<HTMLButtonElement>("refreshCharts").disabled = !!entry?.loading;
   if (!entry || entry.loading) {
     content.innerHTML =
-      '<p class="analytics-state muted" role="status">Loading viewing charts…</p>';
+      '<div class="analytics-state" role="status"><span class="sr-only">Loading viewing charts…</span><div class="sk-charts" aria-hidden="true"><span class="skeleton sk-chart"></span><span class="skeleton sk-chart"></span></div></div>';
   } else if (entry.error) {
     content.innerHTML = `<p class="analytics-state bad" role="alert">${esc(entry.error)}</p>`;
   } else {
@@ -493,12 +494,43 @@ element("list").addEventListener("click", (event) => {
     .focus({ preventScroll: true });
   if (back) void loadAnalytics(id);
 });
+// Shimmer placeholders: cards while the list loads, thumbnails until their image arrives.
+function skeletonCards(count = pageSize) {
+  return Array.from(
+    { length: count },
+    () => `<article class="card skeleton-card" aria-hidden="true"><div class="card-body"><div class="card-face card-front">
+      <div class="thumb-wrap skeleton"></div>
+      <div class="info">
+        <div class="sk-row"><span class="skeleton sk-pill"></span><span class="skeleton sk-pill"></span></div>
+        <span class="skeleton sk-line sk-short"></span>
+        <span class="skeleton sk-line sk-title"></span>
+        <span class="skeleton sk-line"></span>
+        <span class="skeleton sk-line sk-medium"></span>
+      </div>
+      <div class="card-actions"><span class="skeleton sk-button"></span><span class="skeleton sk-button"></span></div>
+    </div></div></article>`,
+  ).join("");
+}
+function trackThumbnails() {
+  document
+    .querySelectorAll<HTMLElement>(".thumb-wrap[data-loading]")
+    .forEach((wrap) => {
+      const image = wrap.querySelector<HTMLImageElement>(".thumb");
+      const done = () => wrap.removeAttribute("data-loading");
+      if (!image || (image.complete && image.naturalWidth > 0)) return done();
+      image.addEventListener("load", done, { once: true });
+      image.addEventListener("error", done, { once: true });
+    });
+}
 async function load() {
   const refresh = element<HTMLButtonElement>("refresh");
   refresh.disabled = true;
   state.hidden = false;
-  state.className = "muted";
+  state.className = "sr-only";
   state.textContent = "Loading presentations…";
+  element("list").innerHTML = skeletonCards();
+  element("paginationTop").hidden = true;
+  element("pagination").hidden = true;
   try {
     const res = await fetch("/recent.json");
     const data = await res.json();
@@ -507,6 +539,7 @@ async function load() {
     currentPage = 1;
     render();
   } catch (e) {
+    element("list").innerHTML = "";
     state.className = "bad";
     state.textContent = "Could not refresh presentations: " + errorMessage(e);
   } finally {
