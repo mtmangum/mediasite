@@ -98,7 +98,7 @@ video at approximately 35%, 50%, and 70% through the recording, favors detailed
 slide/whiteboard frames, and rejects mostly dark or blank frames. Starting from the
 most detailed frame, visible cards step through the samples in recording order
 (beginning, middle, end) every few seconds; hovering or focusing a card pauses it, and
-reduced-motion settings turn automatic stepping off. The small button at the top left
+reduced-motion settings turn automatic stepping off. On hover (or keyboard focus; always on touch screens), a small button at the top left
 shows the frame's timestamp and one dot per sample; click it to step manually. The
 original thumbnail stays visible while previews load, or when extraction is unavailable.
 

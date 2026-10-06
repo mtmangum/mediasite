@@ -17,6 +17,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- The preview cycle button appears only while the pointer is over a card or the button has keyboard focus (touch screens always show it); frames still step automatically otherwise.
 - The “Viewable” status badge is hidden on cards, since every listed presentation is viewable; LIVE (or any other status) still gets a badge. The view-count tag now sits at the left of the card header.
 - Frame previews now step automatically through the samples in recording order (every four seconds, staggered, paused on hover or focus, off under reduced motion) with a crossfade; the cycle button is smaller and shows the timestamp plus one dot per sample.
 - A recording warning (such as “Little visual change”) now appears to the right of the “Recording checks” label instead of replacing it, so the row reads the same with or without a warning.

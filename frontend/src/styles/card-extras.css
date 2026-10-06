@@ -69,6 +69,26 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+/* The cycle button only appears on mouseover or keyboard focus; touch screens always show it. */
+.card:hover .thumb-wrap .preview-button,
+.thumb-wrap:focus-within .preview-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .thumb-wrap .preview-button {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thumb-wrap .preview-button {
+    transition: none;
+  }
 }
 /* One dot per sampled frame, in recording order; the shown frame is filled. */
 .preview-button .pv-dots {
