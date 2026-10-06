@@ -185,6 +185,14 @@
                 value="/Home"
               /><button id="send">Send request ↗</button>
             </div>
+            <div class="write-guard" id="writeGuard">
+              <label class="switch">
+                <input type="checkbox" id="allowWrites" role="switch" />
+                <span class="switch-track" aria-hidden="true"></span>
+                <span>Allow changes</span>
+              </label>
+              <span id="writeHint" class="muted"></span>
+            </div>
             <div id="bodyField" hidden>
               <label for="body">Request body · JSON</label
               ><textarea

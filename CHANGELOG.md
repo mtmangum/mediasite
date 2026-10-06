@@ -24,6 +24,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- The API explorer is read-only by default: only GET can be selected until an **Allow changes** switch is turned on (it resets on every page load). The button reads “Send changes” while a write method is selected, history entries that would write need the switch too, and the server refuses POST, PUT, PATCH, and DELETE unless the page explicitly allows them. In the demo, writes are simulated.
 - Course titles parse far more often (398 of 400 titles in the library, up from 347): cross-listed courses (`M E 336P/N E 336P`), codes with no dash or space (`CS311-…`), decimal and sub-sections (`ENM 382E.2`, `ECE 382N-11`), lone-surname instructors, recording-number suffixes (`_013`), and titles repeated around a dash. Non-course titles still lose their trailing record date. The charts dialog shows the parsed course and title instead of the raw file name.
 - Course codes are burnt orange (orange on dark) and instructor and presenter names are slate blue on the cards, for a little color without distraction.
 - Paired chart cards in the viewing analytics are the same height, with their data tables and notes pinned to the bottom.

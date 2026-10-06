@@ -50,7 +50,7 @@ const presentations = (origin) => [
 
 before(async () => {
   fake = http.createServer((req, res) => {
-    seen.push({ url: req.url, headers: req.headers });
+    seen.push({ url: req.url, method: req.method, headers: req.headers });
     const reply = (status, type, body) => {
       res.writeHead(status, { "Content-Type": type });
       res.end(body);
@@ -450,6 +450,38 @@ test("responses carry anti-framing and anti-sniffing headers", async () => {
     assert.equal(res.headers.get("x-content-type-options"), "nosniff", path);
     assert.equal(res.headers.get("referrer-policy"), "no-referrer", path);
   }
+});
+
+test("the explorer is read-only unless the page switches on Allow changes", async () => {
+  seen.length = 0;
+  const attempt = (method, extra = {}) =>
+    post("/request", { method, path: "/Presentations('p1')", ...extra });
+  for (const method of ["POST", "PUT", "PATCH", "DELETE", "delete"]) {
+    const refused = await attempt(method);
+    assert.equal(refused.status, 403, method);
+    assert.match(refused.body.error, /Read-only/);
+  }
+  assert.equal((await attempt("DELETE", { allowWrites: false })).status, 403);
+  assert.equal(
+    (await attempt("DELETE", { allowWrites: "true" })).status,
+    403,
+    "only a real true counts",
+  );
+  assert.equal(
+    seen.filter((r) => r.method !== "GET").length,
+    0,
+    "no refused write reached Mediasite",
+  );
+
+  // GET always works; a write goes through only with the switch on.
+  assert.equal((await attempt("GET")).status, 200);
+  assert.equal((await attempt("get")).status, 200);
+  assert.equal((await attempt("DELETE", { allowWrites: true })).status, 200);
+  assert.ok(
+    seen.some((r) => r.method === "DELETE"),
+    "forwarded when allowed",
+  );
+  assert.equal((await attempt("TRACE", { allowWrites: true })).status, 400);
 });
 
 test("oversized request bodies are rejected", async () => {

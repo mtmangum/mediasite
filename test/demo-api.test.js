@@ -145,6 +145,24 @@ test("the API explorer gets canned responses and clear 404s", async () => {
   assert.equal(missing.body.status, 404);
   assert.match(missing.body.body, /not available in the demo/);
 
+  const write = (extra) =>
+    call("/request", {
+      method: "POST",
+      body: JSON.stringify({
+        method: "DELETE",
+        path: "/Presentations('x')",
+        ...extra,
+      }),
+    });
+  assert.equal(
+    (await write({})).status,
+    403,
+    "read-only by default, like the real app",
+  );
+  const simulated = await write({ allowWrites: true });
+  assert.equal(simulated.status, 200);
+  assert.match(JSON.parse(simulated.body.body).demo, /nothing was changed/);
+
   const bad = await call("/request", { method: "POST", body: "{not json" });
   assert.equal(bad.status, 400);
 });

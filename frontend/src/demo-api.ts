@@ -599,13 +599,35 @@ export function demoResponse(
       return withRecord(previewFor);
     case "/request": {
       if (method !== "POST") return null;
-      let request: { method?: string; path?: string } = {};
+      let request: { method?: string; path?: string; allowWrites?: boolean } =
+        {};
       try {
         request = JSON.parse(body || "{}");
       } catch {
         return fail(400, "Invalid request body");
       }
       const path = request.path || "/Home";
+      const writing = !["GET", "HEAD", undefined].includes(
+        request.method?.toUpperCase(),
+      );
+      if (writing && request.allowWrites !== true)
+        return fail(
+          403,
+          'Read-only: switch on "Allow changes" to send writes.',
+        );
+      if (writing)
+        return ok({
+          url: `${connection.baseUrl}${path}`,
+          status: 200,
+          statusText: "OK",
+          ms: 60,
+          contentType: "application/json; charset=utf-8",
+          body: JSON.stringify(
+            { demo: "Writes are simulated here; nothing was changed." },
+            null,
+            2,
+          ),
+        });
       const reply = explorer(path.startsWith("/") ? path : `/${path}`);
       const text =
         "text" in reply ? reply.text! : JSON.stringify(reply.json, null, 2);

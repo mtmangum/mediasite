@@ -181,10 +181,12 @@ so it is built to be reachable only by this app's own pages:
   because your credentials are sent to it. Credentials are never returned to the browser.
 - Responses are sent with `X-Frame-Options: DENY`, `nosniff`, and `no-referrer`.
 
-The API explorer can still send any method (including `DELETE`) to Mediasite with your real
-credentials when you press **Send**; that is its purpose, so use an account with only the
-permissions you want it to have. The GitHub Pages demo never contacts Mediasite and has its
-connection form disabled.
+The API explorer is **read-only by default**: only `GET` can be selected until you switch on
+**Allow changes** (it resets on every page load). With the switch on, `POST`, `PUT`, `PATCH`,
+and `DELETE` are sent to Mediasite with your real credentials and can modify or delete data,
+so use an account with only the permissions you want it to have. The server enforces this too:
+it refuses any write the page has not explicitly allowed. The GitHub Pages demo never contacts
+Mediasite (its writes are simulated) and has its connection form disabled.
 
 ## What needs which credentials
 

@@ -47,8 +47,24 @@ async function config(req, res, ctx) {
   });
 }
 
+const METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"];
+
+// The explorer is read-only unless the page sends allowWrites (its "Allow changes" switch).
 async function request(req, res, ctx) {
-  const { method, path, body, contentType } = JSON.parse(await readBody(req));
+  const {
+    method: asked,
+    path,
+    body,
+    contentType,
+    allowWrites,
+  } = JSON.parse(await readBody(req));
+  const method = String(asked || "GET").toUpperCase();
+  if (!METHODS.includes(method))
+    return sendJson(res, 400, { error: `Unsupported method: ${method}` });
+  if (!["GET", "HEAD"].includes(method) && allowWrites !== true)
+    return sendJson(res, 403, {
+      error: `Read-only: switch on "Allow changes" to send ${method} requests.`,
+    });
   return sendJson(
     res,
     200,

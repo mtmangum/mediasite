@@ -8,7 +8,8 @@ import {
   type Connection,
 } from "./shared";
 
-type InputId = "baseUrl" | "username" | "password" | "apiKey" | "path";
+type InputId =
+  "baseUrl" | "username" | "password" | "apiKey" | "path" | "allowWrites";
 type ButtonId =
   "send" | "save" | "clearHistory" | "copy" | "format" | "download";
 function $(id: InputId): HTMLInputElement;
@@ -35,6 +36,7 @@ const presets = [
   ],
   ["User profiles", "/UserProfiles?$top=5"],
 ];
+const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
 let history: { method: string; path: string; status: number }[] = [];
 let response: ApiResponse | null = null;
 let pretty = true,
@@ -59,7 +61,30 @@ for (const [label, path] of presets) {
 function toggleBody() {
   $("bodyField").hidden = ["GET", "DELETE"].includes($("method").value);
 }
-$("method").onchange = toggleBody;
+const writesAllowed = () => $("allowWrites").checked;
+const sendLabel = () =>
+  WRITE_METHODS.includes($("method").value) && writesAllowed()
+    ? "Send changes ↗"
+    : "Send request ↗";
+// Read-only by default: only GET is selectable until "Allow changes" is switched on.
+function applyWriteMode() {
+  const allowed = writesAllowed();
+  for (const option of Array.from(($("method") as HTMLSelectElement).options))
+    option.disabled = !allowed && option.value !== "GET";
+  if (!allowed && $("method").value !== "GET") $("method").value = "GET";
+  $("writeGuard").classList.toggle("on", allowed);
+  $("writeHint").textContent = allowed
+    ? "Changes allowed: POST, PUT, PATCH and DELETE can modify or delete data in Mediasite."
+    : "Read-only: only GET requests can be sent.";
+  toggleBody();
+  if (!busy) $("send").textContent = sendLabel();
+}
+$("method").onchange = () => {
+  toggleBody();
+  if (!busy) $("send").textContent = sendLabel();
+};
+$("allowWrites").onchange = applyWriteMode;
+applyWriteMode();
 function renderHistory() {
   $("history").replaceChildren();
   if (!history.length) {
@@ -70,9 +95,16 @@ function renderHistory() {
     const b = document.createElement("button");
     b.textContent = `${item.method} ${item.path} · ${item.status}`;
     b.onclick = () => {
+      if (WRITE_METHODS.includes(item.method) && !writesAllowed()) {
+        $("requestError").textContent =
+          "Switch on “Allow changes” to use this request again.";
+        return;
+      }
+      $("requestError").textContent = "";
       $("method").value = item.method;
       $("path").value = item.path;
       toggleBody();
+      $("send").textContent = sendLabel();
     };
     $("history").append(b);
   }
@@ -138,6 +170,11 @@ async function send() {
     hasBody = !["GET", "DELETE"].includes(method),
     body = hasBody ? $("body").value : undefined;
   $("requestError").textContent = "";
+  if (WRITE_METHODS.includes(method) && !writesAllowed()) {
+    $("requestError").textContent =
+      "Read-only: switch on “Allow changes” to send POST, PUT, PATCH or DELETE.";
+    return;
+  }
   if (!path) {
     $("requestError").textContent = "Enter an endpoint path.";
     return;
@@ -166,6 +203,7 @@ async function send() {
       method,
       path,
       body: body || undefined,
+      allowWrites: writesAllowed(),
     });
     if (r.error) throw Error(r.error);
     response = r;
@@ -188,7 +226,7 @@ async function send() {
   } finally {
     busy = false;
     $("send").disabled = false;
-    $("send").textContent = "Send request ↗";
+    $("send").textContent = sendLabel();
   }
 }
 $("send").onclick = send;
