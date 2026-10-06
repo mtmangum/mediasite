@@ -11,6 +11,15 @@ Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
 
 ![Presentations grid in dark mode with thumbnails, view counts, recording checks, and analytics controls](screenshot.png)
 
+**Contents**
+
+- [Quick start](#quick-start)
+- [Using the app](#using-the-app)
+- [Demo site](#demo-site-github-pages)
+- [Analytics and shareable links](#viewing-analytics-and-shareable-links)
+- [Security notes](#security-notes)
+- [Development commands](#development-commands)
+
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
 
 Typography uses a self-hosted Inter 4.1 variable font, with system fonts as a fallback
