@@ -1,3 +1,4 @@
+import "./demo-hook";
 import "./theme";
 import { fetchJson } from "./http";
 import { store } from "./store";
@@ -76,6 +77,13 @@ function render() {
   observePreviews();
 }
 
+// The intro and footer name how many presentations the library holds (up to 100).
+function setLibraryCount() {
+  document
+    .querySelectorAll("[data-library-count]")
+    .forEach((el) => (el.textContent = String(store.items.length)));
+}
+
 // Fetches live view totals for the visible cards first, then the rest in the background.
 function hydrateViews(fresh: boolean) {
   const run = ++viewsRun;
@@ -135,6 +143,7 @@ async function checkForNew() {
 function showPending() {
   if (!pendingItems) return;
   store.items = pendingItems;
+  setLibraryCount();
   hideNewRecordings();
   currentPage = 1;
   render();
@@ -168,6 +177,7 @@ async function load(fresh = false) {
     store.items = (
       await fetchJson<{ items: Presentation[] }>("/recent.json")
     ).items;
+    setLibraryCount();
     currentPage = 1;
     render();
     hydrateViews(fresh);

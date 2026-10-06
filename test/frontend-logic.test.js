@@ -186,7 +186,7 @@ test("new presentations are those the page has not seen, in the incoming order",
 
 test("shareable chart links parse to a presentation id and build back", async () => {
   const { chartsFor, chartsPath, LIST_PATH } = await load("route");
-  assert.equal(LIST_PATH, "/recent");
+  assert.equal(LIST_PATH, "/recent", "the default base is the site root");
   assert.equal(
     chartsFor("/recent/ee17f8d604b24829/charts"),
     "ee17f8d604b24829",

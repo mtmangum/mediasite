@@ -5,6 +5,7 @@ export default defineConfig({
   root,
   server: { middlewareMode: true },
   appType: "mpa",
+  define: { __DEMO__: false },
   build: {
     outDir: "../dist",
     emptyOutDir: true,

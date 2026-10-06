@@ -1,3 +1,4 @@
+import "./demo-hook";
 import "./theme";
 import { fetchJson, postJson } from "./http";
 import {

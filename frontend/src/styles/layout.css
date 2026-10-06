@@ -138,3 +138,21 @@ footer {
 [hidden] {
   display: none !important;
 }
+
+/* The GitHub Pages demo is labelled so nobody mistakes the sample data for real data. */
+.demo-banner {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--fg);
+  font-size: 12px;
+  text-align: center;
+}
+/* Without the university wordmark there is nothing for the brand's divider to separate. */
+body:has(.demo-banner) .brand {
+  padding-left: 0;
+  border-left: 0;
+}
+.demo-banner a {
+  color: var(--ink-course, var(--accent));
+}

@@ -132,6 +132,20 @@ totals are looked up one presentation at a time (eight in parallel, visible card
 cached on the server for five minutes, and bypassed by the **Refresh** button. A shimmering
 placeholder stands in until each count arrives; if a lookup fails, the list's count is used.
 
+## Demo site (GitHub Pages)
+
+`npm run build:demo` builds a static copy of the app into `dist-demo/` that runs entirely in
+the browser against built-in sample data (fictional courses and viewers, generated
+thumbnails; no Mediasite connection, credentials, or real recordings). `npm run preview:demo`
+serves it at http://localhost:4173/mediasite/. The sub-path comes from `DEMO_BASE` (default
+`/mediasite/`).
+
+To publish it, enable **Settings → Pages → Build and deployment → Source: GitHub Actions**
+on the repository. After that every push to `main` runs `.github/workflows/pages.yml`
+(format check, tests, demo build, deploy) and the site appears at
+`https://<user>.github.io/<repo>/`. Shareable chart links work there through a `404.html`
+copy of the app, which GitHub Pages serves for unknown paths.
+
 ## Viewing analytics and shareable links
 
 Open **Viewing charts** from the back of a card. The dialog shows headline numbers, a few
@@ -195,7 +209,9 @@ Front end (Vite + TypeScript):
 - `frontend/src/pagination.ts` — page-status and page-button markup
 - `frontend/src/health.ts` / `previews.ts` / `analytics.ts` / `live-views.ts` — per-card recording checks, frame previews, analytics, and live view totals
 - `frontend/src/viewing-charts.ts` / `viewing-stats.ts` — viewing analytics charts, and the pure statistics behind them
-- `frontend/src/route.ts` — shareable chart-link URLs
+- `frontend/src/route.ts` — shareable chart-link URLs (base-path aware)
+- `frontend/src/demo-api.ts` / `demo-install.ts` / `demo-hook.ts` — the demo build's built-in sample API and the switch that installs it
+- `vite.demo.config.mjs` / `.github/workflows/pages.yml` — the static demo build and its GitHub Pages deployment
 - `frontend/src/shared.ts` / `format.ts` / `http.ts` / `store.ts` — shared types, formatting and escaping, JSON fetch helpers, loaded-list state
 - `frontend/src/style.css` — imports `frontend/src/styles/*.css` in cascade order (base, layout, explorer, list, cards, responsive, card-flip, analytics, dialog, charts, card-extras, loading)
 - `vite.config.mjs` / `tsconfig.json` — build and strict type-check settings
