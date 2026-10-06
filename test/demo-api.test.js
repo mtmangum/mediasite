@@ -117,52 +117,15 @@ test("endpoints answer like the real server, including errors", async () => {
     demoLibrary(NOW)[0].item.recordingWarnings,
   );
 
-  assert.equal((await call("/config")).body.username, "demo");
   assert.equal(
     await call("/not-an-api-route"),
     null,
     "other paths pass through",
   );
-  assert.equal(await call("/request"), null, "only POST /request is handled");
-});
-
-test("the API explorer gets canned responses and clear 404s", async () => {
-  const ask = (path) =>
-    call("/request", {
-      method: "POST",
-      body: JSON.stringify({ method: "GET", path }),
-    });
-  const home = await ask("/Home");
-  assert.equal(home.body.status, 200);
-  assert.equal(JSON.parse(home.body.body).SiteName, "Demo Mediasite");
-
-  const list = await ask("/Presentations?$top=3&$filter=ignored");
-  const parsed = JSON.parse(list.body.body);
-  assert.equal(parsed.value.length, 3);
-  assert.ok(parsed.value[0].Id && parsed.value[0].Title);
-
-  const missing = await ask("/Nope");
-  assert.equal(missing.body.status, 404);
-  assert.match(missing.body.body, /not available in the demo/);
-
-  const write = (extra) =>
-    call("/request", {
-      method: "POST",
-      body: JSON.stringify({
-        method: "DELETE",
-        path: "/Presentations('x')",
-        ...extra,
-      }),
-    });
   assert.equal(
-    (await write({})).status,
-    403,
-    "read-only by default, like the real app",
+    await call("/request", { method: "POST", body: "{}" }),
+    null,
+    "the API explorer is not part of the demo",
   );
-  const simulated = await write({ allowWrites: true });
-  assert.equal(simulated.status, 200);
-  assert.match(JSON.parse(simulated.body.body).demo, /nothing was changed/);
-
-  const bad = await call("/request", { method: "POST", body: "{not json" });
-  assert.equal(bad.status, 400);
+  assert.equal(await call("/config"), null);
 });

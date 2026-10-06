@@ -134,16 +134,17 @@ placeholder stands in until each count arrives; if a lookup fails, the list's co
 
 ## Demo site (GitHub Pages)
 
-`npm run build:demo` builds a static copy of the app into `dist-demo/` that runs entirely in
-the browser against built-in sample data (fictional courses and viewers, generated
-thumbnails; no Mediasite connection, credentials, or real recordings). `npm run preview:demo`
+`npm run build:demo` builds a static copy of the presentations page into `dist-demo/` that
+runs entirely in the browser against built-in sample data (fictional courses and viewers,
+generated thumbnails; no Mediasite connection, credentials, or real recordings). The API
+explorer is local-only and is not part of the public site. `npm run preview:demo`
 serves it at http://localhost:4173/mediasite/. The sub-path comes from `DEMO_BASE` (default
 `/mediasite/`).
 
 To publish it, enable **Settings → Pages → Build and deployment → Source: GitHub Actions**
 on the repository. After that every push to `main` runs `.github/workflows/pages.yml`
 (format check, tests, demo build, deploy) and the site appears at
-`https://<user>.github.io/<repo>/`. Shareable chart links work there through a `404.html`
+`https://<user>.github.io/<repo>/` (the presentations page; `/recent` is the same page). Shareable chart links work there through a `404.html`
 copy of the app, which GitHub Pages serves for unknown paths.
 
 ## Viewing analytics and shareable links
@@ -185,8 +186,8 @@ The API explorer is **read-only by default**: only `GET` can be selected until y
 **Allow changes** (it resets on every page load). With the switch on, `POST`, `PUT`, `PATCH`,
 and `DELETE` are sent to Mediasite with your real credentials and can modify or delete data,
 so use an account with only the permissions you want it to have. The server enforces this too:
-it refuses any write the page has not explicitly allowed. The GitHub Pages demo never contacts
-Mediasite (its writes are simulated) and has its connection form disabled.
+it refuses any write the page has not explicitly allowed. The GitHub Pages demo does not
+include the explorer and never contacts Mediasite.
 
 ## What needs which credentials
 

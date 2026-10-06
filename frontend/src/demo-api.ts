@@ -435,80 +435,6 @@ function previewFor(record: DemoRecord) {
   };
 }
 
-const connection = {
-  baseUrl: "https://demo.example.edu/Mediasite/Api/v1",
-  username: "demo",
-  hasPassword: true,
-  hasApiKey: true,
-};
-
-// -- the API explorer's canned responses ----------------------------------------------------
-function explorer(path: string) {
-  const [route, query = ""] = path.split("?");
-  const params = new URLSearchParams(query.replace(/\+/g, "%2B"));
-  const top = Math.min(100, Math.max(1, Number(params.get("$top")) || 10));
-  const note = "Demo: responses are built in, and OData filters are ignored.";
-  if (route === "/Home")
-    return {
-      status: 200,
-      json: {
-        SiteName: "Demo Mediasite",
-        ApiVersion: "demo",
-        SiteDescription: note,
-      },
-    };
-  if (route === "/$metadata")
-    return {
-      status: 200,
-      text: '<?xml version="1.0"?><!-- Demo: the real schema is not included. --><edmx:Edmx Version="1.0"/>',
-    };
-  if (route === "/Presentations")
-    return {
-      status: 200,
-      json: {
-        "odata.count": String(demoLibrary().length),
-        value: demoLibrary()
-          .slice(0, top)
-          .map(({ item }) => ({
-            Id: item.id,
-            Title: item.title,
-            Status: item.status,
-            Duration: item.durationMs,
-          })),
-      },
-    };
-  if (route === "/Folders")
-    return {
-      status: 200,
-      json: {
-        value: COURSES.slice(0, top).map((c, i) => ({
-          Id: `folder${i}`,
-          Name: `${c.code} ${c.title}`,
-          ParentFolderId: "root",
-        })),
-      },
-    };
-  if (route === "/UserProfiles")
-    return {
-      status: 200,
-      json: {
-        value: [{ Id: "demo", UserName: "demo", DisplayName: "Demo User" }],
-      },
-    };
-  return {
-    status: 404,
-    json: {
-      "odata.error": {
-        code: "NotFound",
-        message: {
-          lang: "en-US",
-          value: `${route} is not available in the demo.`,
-        },
-      },
-    },
-  };
-}
-
 // -- routing --------------------------------------------------------------------------------
 const VALID_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 export interface DemoReply {
@@ -535,8 +461,6 @@ export function demoResponse(
     return record ? ok(make(record)) : fail(404, "Presentation not found");
   };
   switch (pathname) {
-    case "/config":
-      return ok(connection);
     case "/recent.json":
       return ok({ items: demoLibrary().map(({ item }) => item) });
     case "/presentation.json":
@@ -597,52 +521,6 @@ export function demoResponse(
       }));
     case "/preview.json":
       return withRecord(previewFor);
-    case "/request": {
-      if (method !== "POST") return null;
-      let request: { method?: string; path?: string; allowWrites?: boolean } =
-        {};
-      try {
-        request = JSON.parse(body || "{}");
-      } catch {
-        return fail(400, "Invalid request body");
-      }
-      const path = request.path || "/Home";
-      const writing = !["GET", "HEAD", undefined].includes(
-        request.method?.toUpperCase(),
-      );
-      if (writing && request.allowWrites !== true)
-        return fail(
-          403,
-          'Read-only: switch on "Allow changes" to send writes.',
-        );
-      if (writing)
-        return ok({
-          url: `${connection.baseUrl}${path}`,
-          status: 200,
-          statusText: "OK",
-          ms: 60,
-          contentType: "application/json; charset=utf-8",
-          body: JSON.stringify(
-            { demo: "Writes are simulated here; nothing was changed." },
-            null,
-            2,
-          ),
-        });
-      const reply = explorer(path.startsWith("/") ? path : `/${path}`);
-      const text =
-        "text" in reply ? reply.text! : JSON.stringify(reply.json, null, 2);
-      return ok({
-        url: `${connection.baseUrl}${path}`,
-        status: reply.status,
-        statusText: reply.status === 200 ? "OK" : "Not Found",
-        ms: 60,
-        contentType:
-          "text" in reply
-            ? "application/xml"
-            : "application/json; charset=utf-8",
-        body: text,
-      });
-    }
     default:
       return null;
   }
