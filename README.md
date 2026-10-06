@@ -64,7 +64,8 @@ passed to the front-end build. Connection changes apply in memory until restart;
 password/API key fields retain the existing secrets. Request history stores only the
 method, path, and status in page memory, and resets when the page reloads. Presentation
 search and sorting apply to all 30 loaded results and return to page one. Use the
-numbered pages or **Previous** / **Next** to browse nine cards at a time. Flip a card with **Analytics** to
+numbered pages or previous/next arrows in the top toolbar, or **Previous** / **Next**
+below the cards, to browse nine cards at a time. Flip a card with **Analytics** to
 load all-time views, unique users, watch time, first/last watched, peak connections,
 and browser/operating-system totals. **Refresh analytics** reloads those values;
 otherwise they are cached in page memory. The **API responses** disclosure shows

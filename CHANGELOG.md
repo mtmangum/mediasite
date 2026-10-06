@@ -2,6 +2,17 @@
 
 All notable changes to Mediasite Lab are documented here, newest first.
 
+## [Unreleased]
+
+### Changed
+
+- Replaced the presentation-count badge with compact pagination in the top toolbar, synchronized with the existing bottom pagination.
+- Removed the static “Local workspace” label from both pages.
+
+### Fixed
+
+- Top pagination preserves scroll position and keyboard focus; bottom pagination brings the new results into view instead of aligning the search bar with the top of the window.
+
 ## [0.1.0] - 2026-10-06
 
 Initial release of the local Mediasite API workspace.

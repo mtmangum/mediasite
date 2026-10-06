@@ -76,7 +76,6 @@
           role="group"
           aria-label="Workspace preferences"
         >
-          <span class="local">Local workspace</span>
           <button
             id="themeToggle"
             class="secondary theme-toggle"
@@ -116,8 +115,14 @@
           <option value="newest">Newest first</option>
           <option value="title">Title A–Z</option>
           <option value="duration">Longest first</option></select
-        ><button id="refresh">Refresh ↻</button
-        ><span id="count" class="badge">Loading</span>
+        ><button id="refresh">Refresh ↻</button>
+        <nav
+          id="paginationTop"
+          class="page-controls"
+          data-page-controls
+          aria-label="Presentation pages, top"
+          hidden
+        ></nav>
       </div>
       <div id="state" role="status">Loading presentations…</div>
       <div
@@ -130,11 +135,11 @@
       <nav
         id="pagination"
         class="pagination"
-        aria-label="Presentation pages"
+        aria-label="Presentation pages, bottom"
         hidden
       >
         <span id="pageRange" class="muted" role="status"></span>
-        <div id="pageControls" class="page-controls"></div>
+        <div class="page-controls" data-page-controls></div>
       </nav>
       <footer>
         Showing the latest 30 viewable presentations available to your account.

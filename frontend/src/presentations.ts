@@ -78,23 +78,23 @@ function render() {
   currentPage = Math.min(currentPage, pageCount);
   const start = (currentPage - 1) * pageSize;
   const pageItems = visible.slice(start, start + pageSize);
-  element("count").textContent = query
-    ? `${visible.length} of ${items.length} match`
-    : `${items.length} presentations`;
+  element("paginationTop").hidden = visible.length === 0;
   element("pagination").hidden = visible.length === 0;
   element("pageRange").textContent = visible.length
     ? `Showing ${start + 1}–${start + pageItems.length} of ${visible.length} · Page ${currentPage} of ${pageCount}`
     : "";
-  element("pageControls").innerHTML =
-    `<button class="secondary" data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""}>← Previous</button>${Array.from(
-      { length: pageCount },
-      (_, index) => {
-        const page = index + 1;
-        return `<button class="secondary page-number" data-page="${page}" aria-label="Page ${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`;
-      },
-    ).join(
-      "",
-    )}<button class="secondary" data-page="${currentPage + 1}" ${currentPage === pageCount ? "disabled" : ""}>Next →</button>`;
+  const pageControls = `<button class="secondary" data-page="${currentPage - 1}" aria-label="Previous page" title="Previous page" ${currentPage === 1 ? "disabled" : ""}>←<span class="page-label"> Previous</span></button>${Array.from(
+    { length: pageCount },
+    (_, index) => {
+      const page = index + 1;
+      return `<button class="secondary page-number" data-page="${page}" aria-label="Page ${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`;
+    },
+  ).join(
+    "",
+  )}<button class="secondary" data-page="${currentPage + 1}" aria-label="Next page" title="Next page" ${currentPage === pageCount ? "disabled" : ""}><span class="page-label">Next </span>→</button>`;
+  document
+    .querySelectorAll<HTMLElement>("[data-page-controls]")
+    .forEach((controls) => (controls.innerHTML = pageControls));
   state.hidden = visible.length > 0;
   state.className = "muted";
   state.textContent = items.length
@@ -242,9 +242,6 @@ async function load() {
   } catch (e) {
     state.className = "bad";
     state.textContent = "Could not refresh presentations: " + errorMessage(e);
-    element("count").textContent = items.length
-      ? `${items.length} previously loaded`
-      : "Unavailable";
   } finally {
     refresh.disabled = false;
   }
@@ -253,19 +250,37 @@ function resetPage() {
   currentPage = 1;
   render();
 }
-element("pageControls").addEventListener("click", (event) => {
+function changePage(event: Event) {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest<HTMLButtonElement>("button[data-page]");
   if (!button || button.disabled) return;
   const page = Number(button.dataset.page);
   if (page === currentPage) return;
+  const controls = button.closest<HTMLElement>("[data-page-controls]")!;
+  const fromBottom = !!controls.closest("#pagination");
+  const buttonIndex = Array.from(controls.querySelectorAll("button")).indexOf(
+    button,
+  );
+  const { scrollX, scrollY } = window;
   currentPage = page;
   render();
-  // Move readers and keyboard users to the newly displayed results.
-  const list = element("list");
-  list.focus({ preventScroll: true });
-  element("search").scrollIntoView({ block: "start" });
-});
+  if (fromBottom) {
+    const list = element("list");
+    list.focus({ preventScroll: true });
+    list.scrollIntoView({ block: "start" });
+  } else {
+    // Rendering replaces the buttons; retain focus for repeated navigation.
+    const replacement = controls.querySelectorAll("button")[buttonIndex];
+    const focusTarget = replacement?.disabled
+      ? controls.querySelector<HTMLButtonElement>('[aria-current="page"]')
+      : replacement;
+    focusTarget?.focus({ preventScroll: true });
+    window.scrollTo({ left: scrollX, top: scrollY, behavior: "instant" });
+  }
+}
+document
+  .querySelectorAll<HTMLElement>("[data-page-controls]")
+  .forEach((controls) => controls.addEventListener("click", changePage));
 search.oninput = resetPage;
 element<HTMLSelectElement>("sort").onchange = resetPage;
 element<HTMLButtonElement>("refresh").onclick = load;
