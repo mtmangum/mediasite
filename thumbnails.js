@@ -27,6 +27,13 @@ function safeMediaUrl(cfg, value) {
     throw new Error("Unsupported preview media host");
   return url;
 }
+// Grayscale comparison frame, large enough that handwriting and small movements register.
+const DETAIL_WIDTH = 192,
+  DETAIL_HEIGHT = 108,
+  DETAIL_SIZE = DETAIL_WIDTH * DETAIL_HEIGHT;
+// Samples count as unchanged only when under 1% of pixels differ noticeably. Real lectures,
+// even with one slide up, change 2–60% between samples; an idle screen changed 0.3–0.5%.
+const STATIC_CHANGE_LIMIT = 0.01;
 function scoreFrame(rgb) {
   if (rgb.length !== 64 * 36 * 3) return -Infinity;
   const gray = [],
@@ -78,18 +85,21 @@ function visualReview(samples) {
     )
   )
     return null;
+  // Compare at higher resolution so handwriting, slide changes, and people moving all register.
+  if (!samples.every((s) => s.detail?.length === DETAIL_SIZE)) return null;
   for (let a = 0; a < samples.length; a++)
     for (let b = a + 1; b < samples.length; b++) {
-      let difference = 0;
-      for (let i = 0; i < samples[a].pixels.length; i++)
-        difference += Math.abs(samples[a].pixels[i] - samples[b].pixels[i]);
-      if (difference / samples[a].pixels.length >= 3) return null;
+      let changed = 0;
+      for (let i = 0; i < DETAIL_SIZE; i++)
+        if (Math.abs(samples[a].detail[i] - samples[b].detail[i]) > 24)
+          changed++;
+      if (changed / DETAIL_SIZE >= STATIC_CHANGE_LIMIT) return null;
     }
   return {
     kind: "static",
     label: "Little visual change",
     detail:
-      "Three frames sampled across the recording are nearly identical. This can indicate unattended capture, but a static slide or an audio-led class can also be valid. Review the sampled frames and listen before drawing a conclusion.",
+      "Three frames sampled across the recording are essentially identical, with no new writing, slide changes, or movement anywhere in the frame, such as an idle screen over an empty room. Review the recording to confirm.",
     seconds,
   };
 }
@@ -219,7 +229,7 @@ function extractFrame(
         "-filter_complex_threads",
         "1",
         "-filter_complex",
-        "[0:v:0]scale=640:-2,split[image][analysis];[analysis]scale=64:36,format=rgb24[pixels]",
+        "[0:v:0]scale=640:-2,split=3[image][analysis][change];[analysis]scale=64:36,format=rgb24[pixels];[change]scale=192:108,format=gray[detail]",
         "-map",
         "[image]",
         "-frames:v",
@@ -236,11 +246,19 @@ function extractFrame(
         "-f",
         "rawvideo",
         "pipe:3",
+        "-map",
+        "[detail]",
+        "-frames:v",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:4",
       ],
-      { stdio: ["ignore", "pipe", "ignore", "pipe"] },
+      { stdio: ["ignore", "pipe", "ignore", "pipe", "pipe"] },
     );
     const images = [],
-      pixels = [];
+      pixels = [],
+      detail = [];
     let size = 0;
     const timer = setTimeout(() => process.kill("SIGKILL"), 15000);
     process.stdout.on("data", (chunk) => {
@@ -252,6 +270,10 @@ function extractFrame(
       if (pixels.reduce((n, c) => n + c.length, 0) < 64 * 36 * 3)
         pixels.push(chunk);
     });
+    process.stdio[4].on("data", (chunk) => {
+      if (detail.reduce((n, c) => n + c.length, 0) < DETAIL_SIZE)
+        detail.push(chunk);
+    });
     process.on("error", () => {
       clearTimeout(timer);
       reject(new Error("Video previews require FFmpeg on the server."));
@@ -262,7 +284,13 @@ function extractFrame(
       if (code !== 0 || !image.length)
         return reject(new Error("Unable to sample this recording."));
       const rgb = Buffer.concat(pixels);
-      resolve({ image, score: scoreFrame(rgb), pixels: rgb, seconds });
+      resolve({
+        image,
+        score: scoreFrame(rgb),
+        pixels: rgb,
+        detail: Buffer.concat(detail),
+        seconds,
+      });
     });
   });
 }
@@ -304,7 +332,7 @@ function createPreviewService({
           source.ContentRevision,
           source.LastModified,
           source.DownloadUrl,
-          "v4",
+          "v5",
         ]),
       )
       .digest("hex");
@@ -410,6 +438,7 @@ function createPreviewService({
   };
 }
 module.exports = {
+  extractFrame,
   mediaProxy,
   visualReview,
   sampleTimes,

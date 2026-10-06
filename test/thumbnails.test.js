@@ -182,26 +182,69 @@ test("range proxy rejects servers that ignore seeking rather than downloading wh
   }
 });
 
-test("visual review requires three complete, near-identical samples", () => {
+// A 192x108 grayscale comparison frame with `changed` pixels altered strongly.
+const detailFrame = (changed = 0) => {
+  const frame = Buffer.alloc(192 * 108, 100);
+  frame.fill(220, 0, changed);
+  return frame;
+};
+
+test("visual review flags only recordings where nothing changes anywhere in the frame", () => {
   const image = Buffer.alloc(64 * 36 * 3, 100);
   const samples = [120, 240, 360].map((seconds) => ({
     pixels: image,
+    detail: detailFrame(),
     score: 2,
     seconds,
   }));
   assert.equal(visualReview(samples).kind, "static");
-  assert.match(visualReview(samples).detail, /static slide/);
+  assert.match(visualReview(samples).detail, /essentially identical/);
   assert.equal(visualReview(samples.slice(0, 2)), null);
   assert.equal(
     visualReview([
       samples[0],
       samples[1],
       { ...samples[2], pixels: Buffer.alloc(image.length, 140) },
-    ]),
+    ]).kind,
+    "static",
+    "the coarse thumbnail no longer decides; the detail frame does",
+  );
+  assert.equal(
+    visualReview(samples.map(({ detail, ...s }) => s)),
     null,
+    "without a comparison frame nothing is flagged",
   );
   assert.equal(
     visualReview(samples.map((s) => ({ ...s, score: -Infinity }))).kind,
     "blank",
+  );
+});
+
+test("a clock tick or compression noise is still static, but new writing or movement is not", () => {
+  const image = Buffer.alloc(64 * 36 * 3, 100);
+  const sample = (seconds, detail) => ({
+    pixels: image,
+    detail,
+    score: 2,
+    seconds,
+  });
+  const pixels = 192 * 108;
+  // About 0.4% of pixels changing (an idle lock screen's clock) stays flagged.
+  assert.equal(
+    visualReview([
+      sample(1, detailFrame(0)),
+      sample(2, detailFrame(Math.floor(pixels * 0.004))),
+      sample(3, detailFrame(0)),
+    ]).kind,
+    "static",
+  );
+  // About 2.5% of pixels changing (a page of new handwriting) is a real lecture.
+  assert.equal(
+    visualReview([
+      sample(1, detailFrame(0)),
+      sample(2, detailFrame(Math.floor(pixels * 0.025))),
+      sample(3, detailFrame(0)),
+    ]),
+    null,
   );
 });

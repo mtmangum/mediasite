@@ -10,8 +10,9 @@ const resolved = new Map<string, PreviewState>();
 const dueAt = new Map<string, number>();
 let previewObserver: IntersectionObserver | undefined;
 
-// Frames advance on their own (earlier → later in the recording) unless motion is reduced.
-const STEP_MS = 4000;
+// While a card is hovered, frames advance on their own (earlier → later in the recording)
+// unless motion is reduced.
+const STEP_MS = 1500;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 function applyPreview(card: HTMLElement, preview: PreviewState) {
@@ -125,28 +126,23 @@ export function cyclePreview(id: string, card: HTMLElement) {
   });
 }
 
-// Steps visible, idle cards on their own; hovering or focusing a card pauses it.
+// A hovered card steps through its frames on its own; idle cards stay put.
 function autoStep() {
   if (document.hidden || reducedMotion.matches) return;
   const now = performance.now();
-  document.querySelectorAll<HTMLElement>(".card[data-id]").forEach((card) => {
-    const id = card.dataset.id!;
-    const preview = resolved.get(id);
-    if (!preview || preview.frames.length < 2) return;
-    if (card.dataset.flipped === "true") return;
-    const { top, bottom } = card.getBoundingClientRect();
-    if (bottom < 0 || top > innerHeight) return;
-    if (card.matches(":hover") || card.contains(document.activeElement)) {
-      dueAt.set(id, now + STEP_MS);
-      return;
-    }
-    if (!dueAt.has(id)) {
-      // Stagger first steps so the cards don't all change at once.
-      const jitter = Array.from(id).reduce((n, c) => n + c.charCodeAt(0), 0);
-      dueAt.set(id, now + STEP_MS + (jitter % 2000));
-      return;
-    }
-    if (now >= dueAt.get(id)!) advance(id, card, preview);
-  });
+  const hovered = new Set<string>();
+  document
+    .querySelectorAll<HTMLElement>(".card[data-id]:hover")
+    .forEach((card) => {
+      const id = card.dataset.id!;
+      const preview = resolved.get(id);
+      if (!preview || preview.frames.length < 2) return;
+      if (card.dataset.flipped === "true") return;
+      hovered.add(id);
+      if (!dueAt.has(id)) dueAt.set(id, now + STEP_MS);
+      else if (now >= dueAt.get(id)!) advance(id, card, preview);
+    });
+  // Leaving a card resets its timer, so the next hover starts from a full interval.
+  for (const id of dueAt.keys()) if (!hovered.has(id)) dueAt.delete(id);
 }
 setInterval(autoStep, 500);

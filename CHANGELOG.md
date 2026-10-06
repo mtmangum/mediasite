@@ -17,9 +17,10 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
-- The preview cycle button appears only while the pointer is over a card or the button has keyboard focus (touch screens always show it); frames still step automatically otherwise.
+- “Little visual change” is now reserved for recordings where nothing changes anywhere in the frame (an idle screen, an empty room with no movement). Frames are compared at 192×108 grayscale and flagged only when fewer than 1% of pixels differ between samples, so handwriting, slide changes, and people moving no longer trigger it; on 14 real recordings the old rule flagged 5 and the new one flags only the genuinely idle lock screen. Cached previews are regenerated once to apply the new rule.
+- Previews cycle only while a card is hovered: frames step through the samples in recording order every 1.5 seconds with a crossfade, and idle cards stay still. The cycle button appears only on hover or keyboard focus (touch screens always show it), and automatic stepping is off under reduced motion.
 - The “Viewable” status badge is hidden on cards, since every listed presentation is viewable; LIVE (or any other status) still gets a badge. The view-count tag now sits at the left of the card header.
-- Frame previews now step automatically through the samples in recording order (every four seconds, staggered, paused on hover or focus, off under reduced motion) with a crossfade; the cycle button is smaller and shows the timestamp plus one dot per sample.
+- The preview cycle button is smaller and shows the timestamp plus one dot per sampled frame, in recording order.
 - A recording warning (such as “Little visual change”) now appears to the right of the “Recording checks” label instead of replacing it, so the row reads the same with or without a warning.
 - Internal restructure with no intended behavior change: the server is split into route modules; the presentations page script is split into focused modules (cards, pagination, list logic, health, previews, analytics, formatting, HTTP helpers); the stylesheet is split by area into `frontend/src/styles/`. Duplicated auth-header logic, HTML escaping, time formatting, and fetch/error handling are now shared, and `mediasite.js` is formatted with Prettier like the rest.
 - The API explorer's “Recent presentations” preset now requests 100 items, matching the Presentations page.

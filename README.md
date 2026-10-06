@@ -96,17 +96,24 @@ External videos skip local-file checks.
 Thumbnail previews load as cards enter the viewport. The server samples downloadable
 video at approximately 35%, 50%, and 70% through the recording, favors detailed
 slide/whiteboard frames, and rejects mostly dark or blank frames. Starting from the
-most detailed frame, visible cards step through the samples in recording order
-(beginning, middle, end) every few seconds; hovering or focusing a card pauses it, and
-reduced-motion settings turn automatic stepping off. On hover (or keyboard focus; always on touch screens), a small button at the top left
-shows the frame's timestamp and one dot per sample; click it to step manually. The
-original thumbnail stays visible while previews load, or when extraction is unavailable.
+most detailed frame, a card stays still until you hover over it, then steps through
+the samples in recording order (beginning, middle, end) every second and a half, with a
+crossfade; reduced-motion settings turn automatic stepping off. On hover (or keyboard
+focus; always on touch screens), a small button at the top left shows the frame's
+timestamp and one dot per sample; click it to step manually. The original thumbnail
+stays visible while previews load, or when extraction is unavailable.
 
-Three nearly identical samples produce a **Little visual change** review flag;
-three dark/blank samples produce **Blank sampled frames**. These are screening
-signals, not proof that a class was empty. Static slides and audio-led lectures can
-be valid; listen and review before drawing a conclusion. Checks currently run on
-first viewing, not as a scheduled audit of every recording.
+Two screening flags exist, and both are meant for recordings with nothing happening.
+**Blank sampled frames** means all three samples are dark or visually blank.
+**Little visual change** means the three samples are essentially identical across the
+whole frame (fewer than 1% of pixels differ noticeably, compared at 192×108 grayscale),
+such as an idle lock screen over an empty room. Slides that change, new handwriting, or
+anyone moving in the camera view all count as change, so ordinary lectures with long
+stretches of one slide are not flagged. Tuned on real recordings: an idle screen changed
+0.3–0.5% between samples, while every real lecture changed 2.4% or more. These are
+screening signals, not proof that a class was empty; listen and review before drawing a
+conclusion. Checks currently run on first viewing, not as a scheduled audit of every
+recording.
 
 Preview extraction needs FFmpeg on the server (`FFMPEG_PATH` can override its
 executable). Work is serialized, uses bounded HTTP range reads (up to 24 MiB per
