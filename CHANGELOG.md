@@ -17,6 +17,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- The “Viewable” status badge is hidden on cards, since every listed presentation is viewable; LIVE (or any other status) still gets a badge. The view-count tag now sits at the left of the card header.
 - Frame previews now step automatically through the samples in recording order (every four seconds, staggered, paused on hover or focus, off under reduced motion) with a crossfade; the cycle button is smaller and shows the timestamp plus one dot per sample.
 - A recording warning (such as “Little visual change”) now appears to the right of the “Recording checks” label instead of replacing it, so the row reads the same with or without a warning.
 - Internal restructure with no intended behavior change: the server is split into route modules; the presentations page script is split into focused modules (cards, pagination, list logic, health, previews, analytics, formatting, HTTP helpers); the stylesheet is split by area into `frontend/src/styles/`. Duplicated auth-header logic, HTML escaping, time formatting, and fetch/error handling are now shared, and `mediasite.js` is formatted with Prettier like the rest.

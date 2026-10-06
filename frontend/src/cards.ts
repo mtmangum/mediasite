@@ -16,6 +16,14 @@ function viewsMarkup(views?: number) {
   return `<span class="views-tag" data-tier="${viewsTier(count)}">${count} ${count === 1 ? "view" : "views"}</span>`;
 }
 
+// "Viewable" is the norm for this list, so only unusual states (LIVE, other statuses) get a badge.
+function statusBadge(p: Presentation) {
+  const status = p.isLive ? "LIVE" : p.status;
+  return status && status !== "Viewable"
+    ? `<span class="badge">${esc(status)}</span>`
+    : "";
+}
+
 function instructorMarkup(p: Presentation) {
   const instructor = parseCourseTitle(p.title).instructor;
   return `<dt>${instructor ? "Instructor" : "Presenter"}</dt><dd>${esc(instructor || p.presenter || "—")}</dd>`;
@@ -36,7 +44,7 @@ export function cardMarkup(p: Presentation, flipped: boolean) {
     <article class="card" data-id="${esc(p.id)}" data-flipped="${flipped}">
     <div class="card-body"><div class="card-face card-front" ${flipped ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap" ${p.isLive ? "" : "data-preview"} ${p.thumbnail ? "data-loading" : ""}><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span><button class="secondary preview-button" data-action="preview" hidden>Preview ↻</button></div>
     <div class="info">
-      <div class="card-meta"><span class="badge">${p.isLive ? "LIVE" : esc(p.status || "Viewable")}</span>${viewsMarkup(p.views)}</div>
+      <div class="card-meta">${viewsMarkup(p.views)}${statusBadge(p)}</div>
       ${courseMarkup(p, true)}
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
       <dl>${instructorMarkup(p)}<dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd></dl>
@@ -66,7 +74,7 @@ export function skeletonCards(count: number) {
     () => `<article class="card skeleton-card" aria-hidden="true"><div class="card-body"><div class="card-face card-front">
       <div class="thumb-wrap skeleton"></div>
       <div class="info">
-        <div class="sk-row"><span class="skeleton sk-pill"></span><span class="skeleton sk-pill"></span></div>
+        <div class="sk-row"><span class="skeleton sk-pill"></span></div>
         <span class="skeleton sk-line sk-short"></span>
         <span class="skeleton sk-line sk-title"></span>
         <span class="skeleton sk-line"></span>
