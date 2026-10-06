@@ -1,0 +1,87 @@
+/* Card flip animation, faces, and action buttons. */
+/* The outer card only supplies perspective; every visible surface rotates. */
+.card {
+  perspective: 1200px;
+  align-self: start;
+  overflow: visible;
+  font-size: var(--text-card);
+  line-height: 1.55;
+}
+.card-body {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 560ms cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.card[data-flipped="true"] .card-body {
+  transform: rotateY(-180deg);
+}
+.card-face {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  background-image:
+    url("/textures/card-grain.svg"),
+    linear-gradient(165deg, #ffffff04, transparent 45%);
+  background-size:
+    160px 160px,
+    100% 100%;
+  background-repeat: repeat, no-repeat;
+  border-radius: 13px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: var(--card-shadow);
+}
+.card-front {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0.5px);
+}
+.card-back {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg) translateZ(0.5px);
+}
+.card-back-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.card[data-flipped="true"] .card-front,
+.card[data-flipped="false"] .card-back {
+  pointer-events: none;
+}
+.card-front .info {
+  padding-bottom: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-body {
+    transition: none;
+  }
+}
+.card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+  flex-shrink: 0;
+}
+.card-actions .watch {
+  flex: 1;
+  margin: 0;
+}
+.card-actions button,
+.card-actions .watch {
+  font-size: var(--text-card);
+  padding: 8px 12px;
+}
+.card-actions .flip-button {
+  width: 112px;
+  flex: 0 0 112px;
+}
+.card-back h2 {
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}

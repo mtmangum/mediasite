@@ -4,7 +4,7 @@ const { once } = require("node:events");
 const { createHash, randomUUID } = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { callApi } = require("./mediasite");
+const { callApi, authHeaders } = require("./mediasite");
 
 function sampleTimes(duration) {
   if (!Number.isFinite(duration) || duration <= 0) return [];
@@ -127,12 +127,10 @@ async function mediaProxy(cfg, source, fetchMedia = fetch) {
       const cacheKey = `${start}-${stop}`;
       let block = blocks.get(cacheKey);
       if (!block) {
-        const headers = { Range: `bytes=${start}-${stop}` };
-        if (cfg.username)
-          headers.Authorization =
-            "Basic " +
-            Buffer.from(`${cfg.username}:${cfg.password}`).toString("base64");
-        if (cfg.apiKey) headers.sfapikey = cfg.apiKey;
+        const headers = {
+          Range: `bytes=${start}-${stop}`,
+          ...authHeaders(cfg),
+        };
         const up = await fetchMedia(source, {
           headers,
           redirect: "error",

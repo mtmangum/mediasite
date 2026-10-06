@@ -1,0 +1,77 @@
+/* Course headings, recording-health checks, preview button, warning icon. */
+.course-heading {
+  margin: 10px 0;
+}
+.course-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.course-code {
+  color: var(--accent);
+  font-size: var(--text-small);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.course-section {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+.info .course-heading h2 {
+  margin: 4px 0 0;
+}
+.card-back .course-heading {
+  margin-bottom: 16px;
+}
+
+.recording-health {
+  margin: 9px 0;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.recording-health summary {
+  cursor: pointer;
+  min-height: 20px;
+}
+.recording-health.has-warning summary {
+  color: var(--bad);
+  font-weight: 600;
+}
+.recording-health p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.recording-health > div {
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+  margin-top: 8px;
+}
+
+.thumb-wrap .preview-button {
+  position: absolute;
+  z-index: 1;
+  left: 12px;
+  top: 12px;
+  padding: 0 10px;
+  background: #171c1fe6;
+  border-color: #ffffff40;
+  color: #fff;
+  font-size: var(--text-small);
+  backdrop-filter: blur(8px);
+}
+.thumb-wrap .preview-button:hover {
+  background: #171c1f;
+  border-color: #fff;
+}
+.thumb-wrap .preview-button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.warn-icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: -2px;
+  margin-right: 2px;
+}

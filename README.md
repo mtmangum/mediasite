@@ -132,15 +132,27 @@ source video URLs stay server-side; Mediasite's original thumbnails are unchange
 
 ## Files
 
-- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`, `/viewing.json?id=…`, `/health.json?id=…`, `/preview.json?id=…`, `/preview?id=…&frame=…`)
+Back end (Node, no dependencies):
+
+- `server.js` — entry point: shared state, route dispatch, static files, optional Vite dev middleware
+- `routes/` — one module per concern: `connection.js` (`/config`, `/request`), `presentations.js` (`/recent.json`, `/thumb`), `analytics.js` (`/analytics.json`, `/viewing.json`), `health.js` (`/health.json`), `previews.js` (`/preview.json`, `/preview`)
+- `static.js` / `http-utils.js` — static file serving and request/response helpers
+- `mediasite.js` — connection config, auth headers (`authHeaders`), and request helper
 - `thumbnails.js` — bounded frame extraction, visual review signals, and local preview caching
 - `recording-health.js` — duration, current media, and audio-waveform checks
 - `analytics.js` — aggregate analytics requests and normalization
-- `mediasite.js` — shared request helper (auth headers, timing)
 - `smoke-test.js` — CLI checks
+
+Front end (Vite + TypeScript):
+
 - `frontend/index.html` / `frontend/recent.html` — accessible page markup
-- `frontend/src/explorer.ts` / `presentations.ts` — page interactions
-- `frontend/src/shared.ts` — shared DOM helpers and API types
+- `frontend/src/explorer.ts` — API explorer page
+- `frontend/src/presentations.ts` — presentations page: loading, rendering, paging, and event wiring
+- `frontend/src/list.ts` — pure filtering, sorting, and pagination
+- `frontend/src/cards.ts` — card markup, view-count tiers, skeleton placeholders
+- `frontend/src/pagination.ts` — page-status and page-button markup
+- `frontend/src/health.ts` / `previews.ts` / `analytics.ts` — per-card recording checks, frame previews, and analytics
 - `frontend/src/viewing-charts.ts` — expanded analytics charts and segment inspection
-- `frontend/src/style.css` — responsive visual system
+- `frontend/src/shared.ts` / `format.ts` / `http.ts` / `store.ts` — shared types, formatting and escaping, JSON fetch helpers, loaded-list state
+- `frontend/src/style.css` — imports `frontend/src/styles/*.css` in cascade order (base, layout, explorer, list, cards, responsive, card-flip, analytics, dialog, charts, card-extras, loading)
 - `vite.config.mjs` / `tsconfig.json` — build and strict type-check settings

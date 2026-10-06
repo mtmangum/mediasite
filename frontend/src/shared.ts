@@ -5,6 +5,12 @@ export function element<T extends HTMLElement = HTMLElement>(id: string): T {
 }
 export const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+// State of an on-demand fetch: pending, failed, or loaded.
+export interface Loadable<T> {
+  data?: T;
+  error?: string;
+  loading: boolean;
+}
 export interface ApiResponse {
   url: string;
   status: number;

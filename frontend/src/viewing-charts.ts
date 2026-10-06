@@ -1,13 +1,6 @@
+import { esc, fmtTime } from "./format";
 import type { Presentation, ViewingCharts } from "./shared";
 
-const esc = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ]!,
-  );
 const time = (seconds: number) => {
   const rounded = Math.floor(seconds);
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, "0")}`;
@@ -142,7 +135,7 @@ export function renderViewingCharts(
         '<p class="chart-state muted">No watch time has been recorded yet.</p>';
     histogramMarkup += `<div class="session-notes"><span>${count(histogram.totalSessions)} total sessions</span><span>${count(histogram.zeroSeconds)} zero-second opens</span>${histogram.unknownSeconds ? `<span>${count(histogram.unknownSeconds)} unavailable durations</span>` : ""}</div>`;
   }
-  container.innerHTML = `<div class="viewing-grid"><section class="chart-panel"><div class="chart-heading"><h3>Viewing timeline</h3><span class="chart-kind">SEGMENTS</span></div>${headline(timeline ? peak : undefined, "peak segment views")}<p class="chart-description muted">Views across the recording, including replay.</p>${timelineMarkup}</section><section class="chart-panel"><div class="chart-heading"><h3>Watch duration</h3><span class="chart-kind">HISTOGRAM</span></div>${headline(histogram?.watchedSessions, "watched sessions")}<p class="chart-description muted">${histogram?.bins.length ? `${histogram.binSeconds / 60}-minute intervals · ` : ""}Watch time per session, including replay.</p>${histogramMarkup}</section></div><p class="chart-caption muted">Updated ${esc(new Date(data.fetchedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }))} · Sessions are not unique viewers. Timeline counts can differ because of reporting thresholds.</p>`;
+  container.innerHTML = `<div class="viewing-grid"><section class="chart-panel"><div class="chart-heading"><h3>Viewing timeline</h3><span class="chart-kind">SEGMENTS</span></div>${headline(timeline ? peak : undefined, "peak segment views")}<p class="chart-description muted">Views across the recording, including replay.</p>${timelineMarkup}</section><section class="chart-panel"><div class="chart-heading"><h3>Watch duration</h3><span class="chart-kind">HISTOGRAM</span></div>${headline(histogram?.watchedSessions, "watched sessions")}<p class="chart-description muted">${histogram?.bins.length ? `${histogram.binSeconds / 60}-minute intervals · ` : ""}Watch time per session, including replay.</p>${histogramMarkup}</section></div><p class="chart-caption muted">Updated ${esc(fmtTime(data.fetchedAt))} · Sessions are not unique viewers. Timeline counts can differ because of reporting thresholds.</p>`;
 
   function bind(
     kind: string,

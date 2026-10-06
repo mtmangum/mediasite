@@ -1,0 +1,63 @@
+/* Breakpoint overrides for the page chrome, list, and cards. */
+@media (max-width: 950px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 650px) {
+  main {
+    padding: 20px 16px;
+  }
+  .topbar {
+    padding: 14px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .page-head {
+    flex-direction: column-reverse;
+    gap: 16px;
+  }
+  .workspace-tools {
+    align-self: flex-end;
+  }
+  .topbar nav {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+  .brand {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .university-brand {
+    margin-right: 0;
+  }
+  .layout,
+  .cards {
+    grid-template-columns: 1fr;
+  }
+  h1 {
+    font-size: 26px;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .panel {
+    padding: 16px;
+  }
+  .panel-head {
+    flex-wrap: wrap;
+  }
+  .row button {
+    flex-grow: 1;
+  }
+}

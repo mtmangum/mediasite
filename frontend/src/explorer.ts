@@ -1,4 +1,5 @@
 import "./theme";
+import { fetchJson, postJson } from "./http";
 import {
   element,
   errorMessage,
@@ -24,7 +25,8 @@ const presets = [
   ["Folders", "/Folders?$top=5&$select=Id,Name,ParentFolderId"],
   [
     "Recent presentations",
-    "/Presentations?$top=30&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
+    // Mirrors the query behind the Presentations page (/recent.json).
+    "/Presentations?$top=100&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
   ],
   [
     "Search “lecture”",
@@ -82,21 +84,14 @@ renderHistory();
 async function loadConfig(post = false) {
   $("save").disabled = true;
   try {
-    const opts = post
-      ? {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            baseUrl: $("baseUrl").value.trim(),
-            username: $("username").value.trim(),
-            password: $("password").value,
-            apiKey: $("apiKey").value,
-          }),
-        }
-      : {};
-    const res = await fetch("/config", opts);
-    const c: Connection & { error?: string } = await res.json();
-    if (!res.ok) throw Error(c.error || res.statusText);
+    const c = post
+      ? await postJson<Connection>("/config", {
+          baseUrl: $("baseUrl").value.trim(),
+          username: $("username").value.trim(),
+          password: $("password").value,
+          apiKey: $("apiKey").value,
+        })
+      : await fetchJson<Connection>("/config");
     $("baseUrl").value = c.baseUrl;
     $("username").value = c.username;
     $("password").value = "";
@@ -166,13 +161,12 @@ async function send() {
   $("out").hidden = true;
   $("empty").hidden = true;
   try {
-    const res = await fetch("/request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method, path, body: body || undefined }),
+    const r = await postJson<ApiResponse & { error?: string }>("/request", {
+      method,
+      path,
+      body: body || undefined,
     });
-    const r: ApiResponse & { error?: string } = await res.json();
-    if (!res.ok || r.error) throw Error(r.error || res.statusText);
+    if (r.error) throw Error(r.error);
     response = r;
     pretty = true;
     $("meta").className = r.status >= 200 && r.status < 300 ? "ok" : "bad";

@@ -1,0 +1,79 @@
+/* Presentation list toolbar, grid, and pagination controls. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.toolbar input {
+  flex: 1 1 260px;
+}
+.toolbar .page-controls {
+  margin-left: auto;
+}
+.toolbar .page-controls button {
+  min-width: var(--control-height);
+}
+.toolbar .page-label {
+  display: none;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 12px;
+  font-size: 13px;
+}
+.page-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.page-status {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+  height: var(--control-height);
+  margin-right: 6px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.page-status strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+.page-of {
+  font-size: 12px;
+}
+.toolbar .page-of {
+  display: none;
+}
+.page-controls .page-number {
+  min-width: var(--control-height);
+  padding-inline: 10px;
+}
+.page-controls [aria-current="page"] {
+  background: var(--soft);
+  border-color: var(--ut-orange);
+  color: var(--fg);
+}
+.page-controls button:disabled {
+  cursor: default;
+}
+#list {
+  scroll-margin-top: 24px;
+}

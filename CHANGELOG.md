@@ -16,6 +16,8 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- Internal restructure with no intended behavior change: the server is split into route modules; the presentations page script is split into focused modules (cards, pagination, list logic, health, previews, analytics, formatting, HTTP helpers); the stylesheet is split by area into `frontend/src/styles/`. Duplicated auth-header logic, HTML escaping, time formatting, and fetch/error handling are now shared, and `mediasite.js` is formatted with Prettier like the rest.
+- The API explorer's “Recent presentations” preset now requests 100 items, matching the Presentations page.
 - Loading states use shimmer placeholders: skeleton cards while the list loads or refreshes, a sweeping highlight on thumbnails until the image arrives, a placeholder for pending recording checks, and skeleton blocks for analytics and viewing charts. Reduced-motion users get static placeholders.
 - The “Showing 1–9 of 100” range, with “Page 1 of 12” on a second line, now lives inside the pagination controls at the start of both the top and bottom controls (the top shows the range line only), with the numbers emphasized, instead of as separate text below the cards.
 - View counts on cards are now color-coded capsules: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime, and 21+ green (with correct singular “1 view”).

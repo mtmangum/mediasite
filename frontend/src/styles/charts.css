@@ -1,0 +1,288 @@
+/* Viewing charts, inspector, and their breakpoints. */
+.viewing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.chart-panel {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--bg);
+}
+.chart-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chart-heading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.chart-kind {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.chart-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+.chart-headline strong {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-headline span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.chart-description {
+  margin: 6px 0 0;
+  min-height: 34px;
+  line-height: 1.4;
+}
+.chart-panel p,
+.chart-caption,
+.session-notes,
+.segment-inspector {
+  font-size: var(--text-small);
+}
+.chart-plot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.chart-plot svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+.chart-grid {
+  fill: none;
+  stroke: var(--line);
+  opacity: 0.5;
+  stroke-dasharray: 2 4;
+  vector-effect: non-scaling-stroke;
+}
+.chart-line {
+  fill: none;
+  stroke: var(--ut-orange);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.chart-area {
+  fill: url(#timelineWash);
+}
+.chart-wash-top {
+  stop-color: var(--muted);
+  stop-opacity: 0.2;
+}
+.chart-wash-bottom {
+  stop-color: var(--muted);
+  stop-opacity: 0;
+}
+.chart-bar {
+  fill: var(--ut-orange);
+}
+.chart-bar.selected {
+  stroke: var(--fg);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+.chart-crosshair {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+.chart-point {
+  fill: var(--fg);
+  stroke: var(--ut-orange);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  line-height: 1;
+  padding: 5px 0 3px;
+}
+.chart-x-axis {
+  position: relative;
+  height: 18px;
+  margin: 8px 0 0 32px;
+}
+.chart-x-axis span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.chart-x-axis .axis-start {
+  transform: none;
+}
+.chart-x-axis .axis-end {
+  transform: translateX(-100%);
+}
+.chart-axis-label {
+  margin: 2px 0 12px 32px;
+  font-size: 10px;
+}
+.chart-y-axis,
+.chart-x-axis {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.segment-inspector {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0 8px;
+  padding: 9px 10px 0;
+  background: var(--panel);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.segment-inspector label {
+  margin: 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+.segment-inspector output {
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.segment-inspector input {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  height: 28px;
+  min-height: 28px;
+}
+.segment-inspector input::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--ut-orange) var(--range-progress),
+    var(--line) var(--range-progress)
+  );
+}
+.segment-inspector input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  margin-top: -5px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--ut-orange);
+  box-shadow: 0 1px 4px #00000030;
+}
+.segment-inspector input::-moz-range-track {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.segment-inspector input::-moz-range-progress {
+  height: 3px;
+  background: var(--ut-orange);
+}
+.segment-inspector input::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--ut-orange);
+}
+.chart-state {
+  padding: 16px 0;
+}
+.session-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.chart-data {
+  font-size: var(--text-card);
+}
+.chart-data table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.chart-data caption {
+  text-align: left;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.chart-data th,
+.chart-data td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.chart-data td,
+.chart-data th:last-child {
+  text-align: right;
+}
+@media (max-width: 650px) {
+  #analyticsDialog {
+    padding: 16px;
+  }
+  .expanded-head {
+    top: -16px;
+    margin-top: -16px;
+    padding-top: 16px;
+    gap: 12px;
+  }
+  .expanded-head h2 {
+    font-size: 19px;
+  }
+  .chart-panel {
+    padding: 14px;
+  }
+  .chart-heading {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .chart-x-axis,
+  .chart-y-axis {
+    font-size: 11px;
+  }
+}
+@media (max-width: 850px) {
+  .viewing-grid {
+    grid-template-columns: 1fr;
+  }
+}
