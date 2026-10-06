@@ -7,6 +7,8 @@ const { getAnalytics, getViewingCharts } = require("./analytics");
 
 const { durationWarnings, getRecordingHealth } = require("./recording-health");
 const healthCache = new Map();
+const { createPreviewService } = require("./thumbnails");
+const previews = createPreviewService();
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(__dirname, "dist");
@@ -71,10 +73,42 @@ async function start() {
         }
       }
 
+      if (
+        req.method === "GET" &&
+        ["/preview.json", "/preview"].includes(req.url.split("?")[0])
+      ) {
+        const params = new URL(req.url, "http://localhost").searchParams;
+        const id = params.get("id");
+        try {
+          const { frames, review } = await previews.get(
+            getConfig(overrides),
+            id,
+          );
+          if (req.url.startsWith("/preview.json"))
+            return sendJson(res, 200, {
+              review,
+              frames: frames.map((f, index) => ({
+                seconds: f.seconds,
+                url: `/preview?id=${encodeURIComponent(id)}&frame=${index}`,
+              })),
+            });
+          const index = Number(params.get("frame") || 0);
+          if (!Number.isInteger(index) || index < 0 || index >= frames.length)
+            return sendJson(res, 400, { error: "Invalid preview frame" });
+          res.writeHead(200, {
+            "Content-Type": "image/jpeg",
+            "Cache-Control": "private, max-age=300",
+          });
+          return res.end(frames[index].image);
+        } catch (error) {
+          return sendJson(res, error.status || 503, { error: error.message });
+        }
+      }
+
       if (req.method === "GET" && req.url === "/recent.json") {
         const cfg = getConfig(overrides);
         const r = await callApi(cfg, {
-          path: "/Presentations?$top=30&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
+          path: "/Presentations?$top=100&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
         });
         if (r.status !== 200)
           return sendJson(res, r.status, {
@@ -132,6 +166,7 @@ async function start() {
         if (req.method === "POST") {
           const updates = JSON.parse((await readBody(req)) || "{}");
           healthCache.clear();
+          previews.clear();
           for (const key of ["baseUrl", "username", "password", "apiKey"]) {
             if (
               typeof updates[key] === "string" &&

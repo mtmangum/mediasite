@@ -6,7 +6,7 @@ A small Node app with a Vite + TypeScript front end for exploring the Mediasite 
 Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
 
 - **API explorer** (`/`): send GET/POST/PUT/PATCH/DELETE requests, validate JSON bodies, revisit session request history, and copy or download formatted/raw responses.
-- **Recent presentations** (`/recent`): the 30 most recently created viewable presentations, nine per page, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
+- **Recent presentations** (`/recent`): the 100 most recently created viewable presentations, nine per page, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
@@ -33,12 +33,12 @@ cp .env.example .env
 
 Then fill in `.env`:
 
-| Variable | Purpose |
-| --- | --- |
-| `MEDIASITE_BASE_URL` | API root (defaults to the utengr site) |
-| `MEDIASITE_API_KEY` | Sent as the `sfapikey` header |
-| `MEDIASITE_USERNAME` / `MEDIASITE_PASSWORD` | Sent as HTTP Basic auth |
-| `PORT` | Local server port (default 3000) |
+| Variable                                    | Purpose                                |
+| ------------------------------------------- | -------------------------------------- |
+| `MEDIASITE_BASE_URL`                        | API root (defaults to the utengr site) |
+| `MEDIASITE_API_KEY`                         | Sent as the `sfapikey` header          |
+| `MEDIASITE_USERNAME` / `MEDIASITE_PASSWORD` | Sent as HTTP Basic auth                |
+| `PORT`                                      | Local server port (default 3000)       |
 
 `.env` is gitignored. Credentials stay on the server; the browser never sees them.
 
@@ -63,7 +63,9 @@ are generated in `dist/`. Vite runs as middleware in development; credentials ar
 passed to the front-end build. Connection changes apply in memory until restart; blank
 password/API key fields retain the existing secrets. Request history stores only the
 method, path, and status in page memory, and resets when the page reloads. Presentation
-search and sorting apply to all 30 loaded results and return to page one. Use the
+search and sorting (including **Most viewed**) apply to all 100 loaded results and return to page one.
+Each card's view count is a color-coded capsule: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime,
+21+ green. Use the
 numbered pages or previous/next arrows in the top toolbar, or **Previous** / **Next**
 below the cards, to browse nine cards at a time. Flip a card with **Analytics** to
 load all-time views, unique users, watch time, first/last watched, peak connections,
@@ -91,13 +93,32 @@ confirmed silence. Expand the check for the evidence and explanation. Only the
 visible page is checked, with two checks in flight and a five-minute server cache.
 External videos skip local-file checks.
 
+Thumbnail previews load as cards enter the viewport. The server samples downloadable
+video at approximately 35%, 50%, and 70% through the recording, favors detailed
+slide/whiteboard frames, and rejects mostly dark or blank frames. Use the timestamped
+**Preview ↻** button to cycle through usable samples. The original thumbnail stays
+visible while previews load, or when extraction is unavailable.
+
+Three nearly identical samples produce a **Little visual change** review flag;
+three dark/blank samples produce **Blank sampled frames**. These are screening
+signals, not proof that a class was empty. Static slides and audio-led lectures can
+be valid; listen and review before drawing a conclusion. Checks currently run on
+first viewing, not as a scheduled audit of every recording.
+
+Preview extraction needs FFmpeg on the server (`FFMPEG_PATH` can override its
+executable). Work is serialized, uses bounded HTTP range reads (up to 24 MiB per
+recording), and caches repeated media ranges within each job. Credential-scoped,
+revision-aware images are cached locally for seven days under `.cache/thumbnails`,
+with a limit of 100 recordings. This directory is ignored by Git. Credentials and
+source video URLs stay server-side; Mediasite's original thumbnails are unchanged.
+
 ## What needs which credentials
 
-| Endpoint | Anonymous | API key only | API key + login |
-| --- | --- | --- | --- |
-| `/Home`, `/$metadata` | yes | yes | yes |
-| `/Presentations` | 401 | returns an empty list | yes |
-| `/Folders`, `/UserProfiles` | 401 | 401 | yes |
+| Endpoint                    | Anonymous | API key only          | API key + login |
+| --------------------------- | --------- | --------------------- | --------------- |
+| `/Home`, `/$metadata`       | yes       | yes                   | yes             |
+| `/Presentations`            | 401       | returns an empty list | yes             |
+| `/Folders`, `/UserProfiles` | 401       | 401                   | yes             |
 
 ## Notes on the API
 
@@ -111,7 +132,8 @@ External videos skip local-file checks.
 
 ## Files
 
-- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`, `/viewing.json?id=…`, `/health.json?id=…`)
+- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`, `/viewing.json?id=…`, `/health.json?id=…`, `/preview.json?id=…`, `/preview?id=…&frame=…`)
+- `thumbnails.js` — bounded frame extraction, visual review signals, and local preview caching
 - `recording-health.js` — duration, current media, and audio-waveform checks
 - `analytics.js` — aggregate analytics requests and normalization
 - `mediasite.js` — shared request helper (auth headers, timing)

@@ -8,6 +8,7 @@ import {
   type Presentation,
   type ViewingCharts,
   type RecordingHealth,
+  type RecordingWarning,
 } from "./shared";
 
 const esc = (s: unknown) =>
@@ -49,9 +50,13 @@ const recordingHealth = new Map<
 >();
 const healthQueue = new Set<string>();
 let activeChecks = 0;
+const previewWarnings = new Map<string, RecordingWarning>();
 function healthMarkup(p: Presentation) {
   const entry = recordingHealth.get(p.id);
-  const warnings = entry?.data?.warnings || p.recordingWarnings || [];
+  const warnings = [
+    ...(entry?.data?.warnings || p.recordingWarnings || []),
+    ...(previewWarnings.has(p.id) ? [previewWarnings.get(p.id)!] : []),
+  ];
   const label = warnings.length
     ? `${warnings[0].label}${warnings.length > 1 ? ` +${warnings.length - 1}` : ""}`
     : entry?.error
@@ -66,7 +71,13 @@ function updateHealth(id: string) {
     document.querySelectorAll<HTMLElement>("[data-health]"),
   ).find((e) => e.dataset.health === id);
   const p = items.find((p) => p.id === id);
-  if (slot && p) slot.innerHTML = healthMarkup(p);
+  if (slot && p) {
+    const wasOpen = slot.querySelector("details")?.open;
+    const hadFocus = slot.contains(document.activeElement);
+    slot.innerHTML = healthMarkup(p);
+    if (wasOpen) slot.querySelector("details")!.open = true;
+    if (hadFocus) slot.querySelector("summary")!.focus({ preventScroll: true });
+  }
 }
 function queueHealth(pageItems: Presentation[]) {
   // Only visible cards are checked, with two requests in flight at a time.
@@ -108,6 +119,88 @@ function queueHealth(pageItems: Presentation[]) {
   };
   pump();
 }
+interface PreviewState {
+  frames: { seconds: number; url: string }[];
+  index: number;
+}
+const previews = new Map<string, Promise<PreviewState | null>>();
+let previewObserver: IntersectionObserver | undefined;
+function applyPreview(card: HTMLElement, preview: PreviewState) {
+  const selectedIndex = preview.index;
+  const frame = preview.frames[selectedIndex];
+  const image = new Image();
+  image.onload = () => {
+    if (!card.isConnected || selectedIndex !== preview.index) return;
+    let thumb = card.querySelector<HTMLImageElement>(".thumb");
+    if (!thumb) {
+      thumb = document.createElement("img");
+      thumb.className = "thumb";
+      thumb.alt = "";
+      card.querySelector(".thumb-wrap")!.append(thumb);
+    }
+    thumb.src = image.src;
+    const button = card.querySelector<HTMLButtonElement>(".preview-button")!;
+    button.hidden = false;
+    button.disabled = preview.frames.length < 2;
+    button.textContent = `Preview ${fmtDuration(frame.seconds * 1000)}${preview.frames.length > 1 ? " ↻" : ""}`;
+    button.title =
+      preview.frames.length > 1
+        ? `Frame ${preview.index + 1} of ${preview.frames.length}. Try another frame.`
+        : "Sampled frame from this recording";
+    button.setAttribute(
+      "aria-label",
+      `Preview at ${fmtDuration(frame.seconds * 1000)}${preview.frames.length > 1 ? ". Show another preview frame" : ""}`,
+    );
+  };
+  image.src = frame.url;
+}
+function observePreviews() {
+  previewObserver?.disconnect();
+  previewObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        previewObserver!.unobserve(entry.target);
+        const card = entry.target.closest<HTMLElement>(".card")!;
+        const id = card.dataset.id!;
+        if (!previews.has(id))
+          previews.set(
+            id,
+            (async () => {
+              try {
+                const response = await fetch(
+                  `/preview.json?id=${encodeURIComponent(id)}`,
+                );
+                if (!response.ok) return null;
+                const data = await response.json();
+                if (data.review) {
+                  previewWarnings.set(id, {
+                    code: `visual-${data.review.kind}`,
+                    label: data.review.label,
+                    detail: `${data.review.detail} Sample positions: ${data.review.seconds.map((s: number) => fmtDuration(s * 1000)).join(", ")}.`,
+                    severity: "warning",
+                  });
+                  updateHealth(id);
+                }
+                return data.frames?.length
+                  ? { frames: data.frames, index: 0 }
+                  : null;
+              } catch {
+                return null;
+              }
+            })(),
+          );
+        void previews.get(id)!.then((preview) => {
+          if (preview) applyPreview(card, preview);
+        });
+      });
+    },
+    { rootMargin: "100px" },
+  );
+  document
+    .querySelectorAll<HTMLElement>(".thumb-wrap[data-preview]")
+    .forEach((thumb) => previewObserver!.observe(thumb));
+}
 const analytics = new Map<string, AnalyticsState>();
 const viewing = new Map<
   string,
@@ -126,6 +219,24 @@ function courseMarkup(p: Presentation, link = false) {
   const label = parsed.sections?.includes(",") ? "Sections" : "Section";
   return `<div class="course-heading">${parsed.course ? `<div class="course-line"><span class="course-code">${esc(parsed.course)}</span><span class="course-section">${label} ${esc(parsed.sections)}</span></div>` : ""}<h2>${link ? `<a href="${esc(p.watchUrl)}" target="_blank" rel="noopener">${esc(parsed.title)}</a>` : esc(parsed.title)}</h2></div>`;
 }
+// Color tiers for view counts: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime, 21+ green.
+function viewsTier(views = 0) {
+  return views === 0
+    ? "none"
+    : views <= 5
+      ? "low"
+      : views <= 10
+        ? "some"
+        : views <= 20
+          ? "good"
+          : "high";
+}
+
+function viewsMarkup(views?: number) {
+  const count = views ?? 0;
+  return `<span class="views-tag" data-tier="${viewsTier(count)}">${count} ${count === 1 ? "view" : "views"}</span>`;
+}
+
 function instructorMarkup(p: Presentation) {
   const instructor = parseCourseTitle(p.title).instructor;
   return `<dt>${instructor ? "Instructor" : "Presenter"}</dt><dd>${esc(instructor || p.presenter || "—")}</dd>`;
@@ -143,10 +254,14 @@ function render() {
   visible.sort((a, b) =>
     sort === "title"
       ? String(a.title || "").localeCompare(String(b.title || ""))
-      : sort === "duration"
-        ? (b.durationMs || 0) - (a.durationMs || 0)
-        : (Date.parse(b.created || "") || 0) -
-          (Date.parse(a.created || "") || 0),
+      : sort === "views"
+        ? (b.views || 0) - (a.views || 0) ||
+          (Date.parse(b.created || "") || 0) -
+            (Date.parse(a.created || "") || 0)
+        : sort === "duration"
+          ? (b.durationMs || 0) - (a.durationMs || 0)
+          : (Date.parse(b.created || "") || 0) -
+            (Date.parse(a.created || "") || 0),
   );
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
   currentPage = Math.min(currentPage, pageCount);
@@ -154,10 +269,8 @@ function render() {
   const pageItems = visible.slice(start, start + pageSize);
   element("paginationTop").hidden = visible.length === 0;
   element("pagination").hidden = visible.length === 0;
-  element("pageRange").textContent = visible.length
-    ? `Showing ${start + 1}–${start + pageItems.length} of ${visible.length} · Page ${currentPage} of ${pageCount}`
-    : "";
-  const pageControls = `<button class="secondary" data-page="${currentPage - 1}" aria-label="Previous page" title="Previous page" ${currentPage === 1 ? "disabled" : ""}>←<span class="page-label"> Previous</span></button>${Array.from(
+  const pageStatus = `<span class="page-status"><span>${start + 1}–${start + pageItems.length} of ${visible.length}</span><span class="page-of"> · Page ${currentPage} of ${pageCount}</span></span>`;
+  const pageControls = `${pageStatus}<button class="secondary" data-page="${currentPage - 1}" aria-label="Previous page" title="Previous page" ${currentPage === 1 ? "disabled" : ""}>←<span class="page-label"> Previous</span></button>${Array.from(
     { length: pageCount },
     (_, index) => {
       const page = index + 1;
@@ -168,7 +281,12 @@ function render() {
   )}<button class="secondary" data-page="${currentPage + 1}" aria-label="Next page" title="Next page" ${currentPage === pageCount ? "disabled" : ""}><span class="page-label">Next </span>→</button>`;
   document
     .querySelectorAll<HTMLElement>("[data-page-controls]")
-    .forEach((controls) => (controls.innerHTML = pageControls));
+    .forEach((controls) => {
+      controls.innerHTML = pageControls;
+      // Announce page changes once, from the bottom controls only.
+      if (controls.closest("#pagination"))
+        controls.querySelector(".page-status")?.setAttribute("role", "status");
+    });
   state.hidden = visible.length > 0;
   state.className = "muted";
   state.textContent = items.length
@@ -178,12 +296,12 @@ function render() {
     .map(
       (p) => `
     <article class="card" data-id="${esc(p.id)}" data-flipped="${flipped.has(p.id)}">
-    <div class="card-body"><div class="card-face card-front" ${flipped.has(p.id) ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap"><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span></div>
+    <div class="card-body"><div class="card-face card-front" ${flipped.has(p.id) ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap" ${p.isLive ? "" : "data-preview"}><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span><button class="secondary preview-button" data-action="preview" hidden>Preview ↻</button></div>
     <div class="info">
-      <div class="card-meta"><span class="badge">${p.isLive ? "LIVE" : esc(p.status || "Viewable")}</span><span class="muted">${esc(p.views ?? "—")} views</span></div>
+      <div class="card-meta"><span class="badge">${p.isLive ? "LIVE" : esc(p.status || "Viewable")}</span>${viewsMarkup(p.views)}</div>
       ${courseMarkup(p, true)}
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
-      <dl><dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd>${instructorMarkup(p)}</dl>
+      <dl>${instructorMarkup(p)}<dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd></dl>
       <div data-health="${esc(p.id)}">${healthMarkup(p)}</div>
       <details class="presentation-details"><summary>More details</summary><dl><dt>Uploaded</dt><dd>${esc(fmtDate(p.created))}</dd><dt>Owner</dt><dd>${esc(p.owner || "—")}</dd><dt>Folder</dt><dd>${esc(p.folder || "—")}</dd>${parseCourseTitle(p.title).schedule ? `<dt>Schedule</dt><dd>${esc(parseCourseTitle(p.title).schedule)}</dd>` : ""}<dt>Original title</dt><dd>${esc(p.title || "Untitled")}</dd></dl>${p.description ? `<p class="full-description">${esc(p.description)}</p>` : ""}</details>
     </div>
@@ -207,6 +325,7 @@ function render() {
     .querySelectorAll<HTMLImageElement>(".thumb")
     .forEach((img) => (img.onerror = () => img.remove()));
   queueHealth(pageItems);
+  observePreviews();
 }
 function metric(value: number | null) {
   return value === null ? "—" : value.toLocaleString();
@@ -343,6 +462,14 @@ element("list").addEventListener("click", (event) => {
   const card = button?.closest<HTMLElement>(".card");
   const id = card?.dataset.id;
   if (!button || !card || !id) return;
+  if (button.dataset.action === "preview") {
+    void previews.get(id)?.then((preview) => {
+      if (!preview) return;
+      preview.index = (preview.index + 1) % preview.frames.length;
+      applyPreview(card, preview);
+    });
+    return;
+  }
   if (button.dataset.action === "expand") {
     expandAnalytics(id);
     return;

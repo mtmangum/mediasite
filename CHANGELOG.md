@@ -6,12 +6,20 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Added
 
+- “Most viewed” sort option (ties fall back to newest first).
+- Cached later-frame thumbnails with a timestamped control to cycle through samples; viewport-triggered, serialized extraction keeps initial card rendering fast and preserves original thumbnails on failure.
+- Review flags for three nearly unchanged or blank sampled frames, with clear limitations and sample timestamps.
+
 - Front-of-card recording warnings for durations under 20 minutes, missing usable media, processing, and unavailable audio evidence, with expandable explanations and bounded, cached checks.
 - Expanded viewing analytics with compact charts shown side by side on wider screens: an interactive video timeline and an equal-width watch-duration histogram, scrub readouts, exact session counts, separate zero/unknown durations, refresh, and keyboard-accessible segment inspection.
 - On-demand chart fetching follows API pagination and returns aggregate session counts without viewer identities; unavailable or incomplete reports are shown explicitly.
 
 ### Changed
 
+- The “Showing 1–9 of 100 · Page 1 of 12” range now lives inside the pagination controls themselves, at the start of both the top and bottom controls (the top shows the compact range only), instead of as separate text below the cards.
+- View counts on cards are now color-coded capsules: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime, and 21+ green (with correct singular “1 view”).
+- The presentation library now loads the 100 most recently created viewable presentations instead of 30.
+- Instructor now appears above Recorded on the card front.
 - Replaced the presentation-count badge with compact pagination in the top toolbar, synchronized with the existing bottom pagination.
 - Removed the static “Local workspace” label from both pages.
 - Restyled viewing charts with iOS-inspired headline metrics, a stepped area timeline, rounded histogram bars, subtle grid lines, and compact keyboard-accessible scrubbing.
