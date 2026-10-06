@@ -43,10 +43,12 @@
   color: var(--accent);
 }
 .card-meta {
+  float: right;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
+  margin: 0 0 8px 12px;
   font-size: var(--text-small);
   font-variant-numeric: tabular-nums;
 }
