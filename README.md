@@ -118,71 +118,78 @@ Restart the dev server after backend or Vite configuration changes.
 
 ## Using the app
 
-Both modes serve the browser and API from the same localhost origin. Production files
-are generated in `dist/`. Vite runs as middleware in development; credentials are never
-passed to the front-end build. Connection changes apply in memory until restart; blank
-password/API key fields retain the existing secrets. Request history stores only the
-method, path, and status in page memory, and resets when the page reloads. Presentation
-search and sorting (including **Most viewed**) apply to all 100 loaded results and return to page one.
-Each card's view count is a color-coded capsule: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime,
-21+ green. Use the
-numbered pages or **Previous** / **Next** below the presentations to browse nine at a time.
-Switch between **Grid** and **List** in the toolbar; your choice is saved in the browser
-and switching keeps your current page, search, and sort. List rows open the viewing
-charts directly with **Analytics**. In grid view, flip a card with **Analytics** to
-load all-time views, unique users, watch time, first/last watched, peak connections,
-and browser/operating-system totals. **Refresh analytics** reloads those values;
-otherwise they are cached in page memory. The **API responses** disclosure shows
-endpoint status/timing and the aggregate JSON. Missing values appear as a dash;
-permission errors and unavailable platform data are shown explicitly.
+### Browse presentations
 
-Choose **Viewing charts** on the analytics side of a card to open the expanded
-view. The timeline shows reported segment views along the recording; scrub across the plot
-or use the keyboard-accessible slider for exact counts. Compact headline numbers,
-a stepped area timeline, and rounded histogram bars keep the charts readable. The duration histogram groups sessions
-with recorded watch time into equal-width intervals and lists zero-second opens
-and unavailable durations separately. Sessions are not unique viewers, and watch
-time includes replay. Chart data loads only when opened, follows API pagination,
-and is cached in page memory until **Refresh charts** is selected. Viewer names,
-IP addresses, and playback tickets are not returned to the browser. Escape or
-**Close** returns to the card.
+Open **Presentations** to see the latest 100 viewable recordings, nine per page.
 
-Cards also show recording checks on the front. Recordings under 20 minutes are
-flagged for review; live recordings are excluded. File checks look for completed
-current-revision audio/video with positive file size and duration. Audio checks
-use waveform metadata: a missing waveform means **Audio not verified**, not
-confirmed silence. Expand the check for the evidence and explanation. Only the
-visible page is checked, with two checks in flight and a five-minute server cache.
-External videos skip local-file checks.
+- **Search** by title, presenter, folder, or description. Search and sorting apply to all loaded recordings.
+- **Sort** by newest, title, views, or duration. Changing search or sort returns to page one.
+- **Grid / List** changes the layout while keeping your page, search, and sort. Your browser remembers the layout.
+- **Watch** opens the recording; **More details** shows additional metadata.
+- Use the page numbers or **Previous / Next** below the recordings to browse.
+- **Refresh** reloads the library. A **new recording available** banner lets you load new arrivals with **Show**.
 
-Thumbnail previews load as cards enter the viewport. The server samples downloadable
-video at approximately 35%, 50%, and 70% through the recording, favors detailed
-slide/whiteboard frames, and rejects mostly dark or blank frames. Starting from the
-most detailed frame, a card stays still until you hover over it, then steps through
-the samples in recording order (beginning, middle, end) every second and a half, with a
-crossfade; reduced-motion settings turn automatic stepping off. On hover (or keyboard
-focus; always on touch screens), a small button at the top left shows the frame's
-timestamp and one dot per sample; click it to step manually. The original thumbnail
-stays visible while previews load, or when extraction is unavailable.
+View-count badges use these colors:
 
-Two screening flags exist, and both are meant for recordings with nothing happening.
-**Blank sampled frames** means all three samples are dark or visually blank.
-**Little visual change** means the three samples are essentially identical across the
-whole frame (fewer than 1% of pixels differ noticeably, compared at 192×108 grayscale),
-such as an idle lock screen over an empty room. Slides that change, new handwriting, or
-anyone moving in the camera view all count as change, so ordinary lectures with long
-stretches of one slide are not flagged. Tuned on real recordings: an idle screen changed
-0.3–0.5% between samples, while every real lecture changed 2.4% or more. These are
-screening signals, not proof that a class was empty; listen and review before drawing a
-conclusion. Checks currently run on first viewing, not as a scheduled audit of every
-recording.
+| Views | 0   | 1–5    | 6–10   | 11–20 | 21+   |
+| ----- | --- | ------ | ------ | ----- | ----- |
+| Color | Red | Orange | Yellow | Lime  | Green |
 
-Preview extraction needs FFmpeg on the server (`FFMPEG_PATH` can override its
-executable). Work is serialized, uses bounded HTTP range reads (up to 24 MiB per
-recording), and caches repeated media ranges within each job. Credential-scoped,
-revision-aware images are cached locally for seven days under `.cache/thumbnails`,
-with a limit of 100 recordings. This directory is ignored by Git. Credentials and
-source video URLs stay server-side; Mediasite's original thumbnails are unchanged.
+### View analytics
+
+- **Grid:** select **Analytics** to flip a card and see its summary; select **Viewing charts** for the full charts.
+- **List:** select **Analytics** to open the charts directly.
+- Charts show engagement along the recording, views by day, viewing times, watch duration, and audience.
+- Hover or tap charts to inspect values, or expand **View exact counts** for a table.
+- Use **Refresh** on the card or **Refresh charts** in the dialog to update cached results.
+- Select **Copy link** to share the chart URL. Press **Escape** or **Close** to return.
+
+Missing metrics appear as a dash. Sessions are not unique viewers, and watch time
+includes replays. Viewer names, IP addresses, and playback tickets are not sent to
+the browser. See [analytics and shareable links](#viewing-analytics-and-shareable-links) for more detail.
+
+### Preview and check recordings
+
+Hover over a thumbnail to cycle through sampled frames, or use its preview button
+to step manually. On touch screens the button stays visible; reduced-motion settings
+disable automatic cycling. Original thumbnails remain visible when previews are unavailable.
+
+Expand **Recording checks** to see the evidence behind a warning:
+
+| Warning                  | Meaning                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| **Under 20 min**         | A short recording worth reviewing; live recordings are excluded. |
+| **Audio not verified**   | Waveform metadata is missing; this does not confirm silence.     |
+| **Blank sampled frames** | All three sampled frames are dark or visually blank.             |
+| **Little visual change** | The sampled frames are almost identical across the whole frame.  |
+
+Checks run as you browse, not as a scheduled audit of the library. Visual flags are
+screening signals: watch and listen to the recording before drawing conclusions.
+Previews require FFmpeg and downloadable media; external videos skip local-file checks.
+
+### Use the API explorer
+
+Open **API explorer**, choose an endpoint, and select **Send request**. It is read-only
+by default; enabling **Allow changes** permits requests that modify real Mediasite data.
+
+To change accounts, expand **Connection** and select **Apply settings**. Changes last
+until restart; blank password/key fields retain the current secrets. Request history
+resets when you reload the page.
+
+<details>
+<summary>Preview and recording-check implementation details</summary>
+
+File checks inspect completed audio/video for the current revision, including file
+size and duration. Health checks run two at a time and are cached for five minutes.
+
+Previews sample video near 35%, 50%, and 70%, favor detailed frames, and cycle every
+1.5 seconds. Visual-change checks compare frames at 192×108 grayscale and flag less
+than 1% noticeable pixel change. Extraction runs one job at a time with up to 24 MiB
+of HTTP range reads per recording. Images are cached under `.cache/thumbnails` for
+seven days, up to 100 recordings, scoped by credentials and media revision.
+Mediasite's original thumbnails remain unchanged.
+
+</details>
 
 ## About view counts
 
