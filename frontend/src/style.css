@@ -1,5 +1,8 @@
 :root {
   color-scheme: light;
+  --control-height: 40px;
+  --control-radius: 8px;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2365738a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   --button: #5254d9;
   --thumb-start: #dee1fb;
   --thumb-end: #e9edf4;
@@ -15,6 +18,7 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23a3afc4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   --bg: #101522;
   --panel: #192131;
   --fg: #e6ebf5;
@@ -81,8 +85,8 @@ textarea {
 button {
   cursor: pointer;
   border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 9px 15px;
+  border-radius: var(--control-radius);
+  padding: 9px 12px;
   background: var(--button);
   color: white;
   font-weight: 600;
@@ -105,9 +109,38 @@ textarea {
   background: var(--panel);
   color: var(--fg);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: var(--control-radius);
+  padding: 9px 12px;
   min-width: 0;
+}
+button,
+input,
+select,
+.watch {
+  min-height: var(--control-height);
+  line-height: 20px;
+}
+input,
+select {
+  height: var(--control-height);
+}
+input,
+select,
+textarea {
+  appearance: none;
+  -webkit-appearance: none;
+}
+select {
+  background-image: var(--select-arrow);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+  cursor: pointer;
+}
+button:focus-visible,
+.watch:focus-visible {
+  outline: 2px solid var(--accent);
 }
 input:focus,
 textarea:focus,
@@ -369,6 +402,35 @@ pre {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 12px;
+  font-size: 13px;
+}
+.page-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.page-controls .page-number {
+  min-width: var(--control-height);
+  padding-inline: 10px;
+}
+.page-controls [aria-current="page"] {
+  background: var(--soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.page-controls button:disabled {
+  cursor: default;
+}
+#search {
+  scroll-margin-top: 24px;
+}
 .card {
   border: 1px solid var(--line);
   border-radius: 13px;
@@ -466,7 +528,9 @@ dd {
   overflow-wrap: anywhere;
 }
 .watch {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   text-align: center;
   padding: 8px;
@@ -533,46 +597,68 @@ footer {
     flex-grow: 1;
   }
 }
-/* Each face has its own height, keeping collapsed cards compact. */
+/* Rotate both faces as one 3D surface; the action bar stays stationary. */
 .card {
-  perspective: 1000px;
+  perspective: 1200px;
   align-self: start;
+  overflow: visible;
+}
+.card-body {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 560ms cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.card[data-flipped="true"] .card-body {
+  transform: rotateY(-180deg);
 }
 .card-face {
-  animation: card-flip 240ms ease-out;
-  transform-origin: center;
+  background: var(--panel);
+  border-radius: 12px 12px 0 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
-@keyframes card-flip {
-  from {
-    transform: rotateY(75deg);
-    opacity: 0.35;
-  }
-  to {
-    transform: rotateY(0);
-    opacity: 1;
-  }
+.card-front {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0.5px);
+}
+.card-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg) translateZ(0.5px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.card[data-flipped="true"] .card-front,
+.card[data-flipped="false"] .card-back {
+  pointer-events: none;
+}
+.card-front .info {
+  padding-bottom: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .card-face {
-    animation: none;
+  .card-body {
+    transition: none;
   }
 }
 .card-actions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  padding: 0 16px 16px;
 }
 .card-actions .watch {
   flex: 1;
   margin: 0;
 }
-.card-actions button {
+.card-actions button,
+.card-actions .watch {
   font-size: 13px;
   padding: 8px 12px;
 }
-.back-button {
-  font-size: 12px;
-  padding: 5px 10px;
+.card-actions .flip-button {
+  width: 112px;
+  flex: 0 0 112px;
 }
 .card-back h2 {
   font-size: 15px;
@@ -632,10 +718,9 @@ footer {
   padding: 35px 0;
   font-size: 13px;
 }
-.analytics-refresh {
-  width: 100%;
-  margin-top: 12px;
-  font-size: 12px;
+.card-actions .analytics-refresh {
+  flex: 1;
+  min-width: 0;
 }
 .endpoint {
   font:

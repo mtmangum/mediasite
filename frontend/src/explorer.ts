@@ -24,7 +24,7 @@ const presets = [
   ["Folders", "/Folders?$top=5&$select=Id,Name,ParentFolderId"],
   [
     "Recent presentations",
-    "/Presentations?$top=5&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
+    "/Presentations?$top=30&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
   ],
   [
     "Search “lecture”",

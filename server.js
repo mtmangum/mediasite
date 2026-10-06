@@ -43,7 +43,7 @@ async function start() {
       if (req.method === "GET" && req.url === "/recent.json") {
         const cfg = getConfig(overrides);
         const r = await callApi(cfg, {
-          path: "/Presentations?$top=5&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
+          path: "/Presentations?$top=30&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full",
         });
         if (r.status !== 200)
           return sendJson(res, r.status, {

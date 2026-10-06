@@ -43,6 +43,8 @@ interface AnalyticsState {
 const analytics = new Map<string, AnalyticsState>();
 const flipped = new Set<string>();
 let items: Presentation[] = [];
+const pageSize = 9;
+let currentPage = 1;
 const state = element("state");
 const search = element<HTMLInputElement>("search");
 function courseMarkup(p: Presentation, link = false) {
@@ -72,30 +74,53 @@ function render() {
         : (Date.parse(b.created || "") || 0) -
           (Date.parse(a.created || "") || 0),
   );
-  element("count").textContent = `${visible.length} of ${items.length}`;
+  const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
+  currentPage = Math.min(currentPage, pageCount);
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = visible.slice(start, start + pageSize);
+  element("count").textContent = query
+    ? `${visible.length} of ${items.length} match`
+    : `${items.length} presentations`;
+  element("pagination").hidden = visible.length === 0;
+  element("pageRange").textContent = visible.length
+    ? `Showing ${start + 1}–${start + pageItems.length} of ${visible.length} · Page ${currentPage} of ${pageCount}`
+    : "";
+  element("pageControls").innerHTML =
+    `<button class="secondary" data-page="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""}>← Previous</button>${Array.from(
+      { length: pageCount },
+      (_, index) => {
+        const page = index + 1;
+        return `<button class="secondary page-number" data-page="${page}" aria-label="Page ${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`;
+      },
+    ).join(
+      "",
+    )}<button class="secondary" data-page="${currentPage + 1}" ${currentPage === pageCount ? "disabled" : ""}>Next →</button>`;
   state.hidden = visible.length > 0;
   state.className = "muted";
   state.textContent = items.length
     ? "No presentations match your search."
     : "No viewable presentations are available. Check your login in the API explorer connection settings.";
-  element("list").innerHTML = visible
+  element("list").innerHTML = pageItems
     .map(
       (p) => `
-    <article class="card" data-id="${esc(p.id)}">
-    <div class="card-face card-front" ${flipped.has(p.id) ? "hidden" : ""}><div class="thumb-wrap"><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span></div>
+    <article class="card" data-id="${esc(p.id)}" data-flipped="${flipped.has(p.id)}">
+    <div class="card-body"><div class="card-face card-front" ${flipped.has(p.id) ? 'inert aria-hidden="true"' : ""}><div class="thumb-wrap"><span aria-hidden="true">▷</span>${p.thumbnail ? `<img class="thumb" src="${esc(p.thumbnail)}" alt="" loading="lazy">` : ""}<span class="duration">${esc(fmtDuration(p.durationMs))}</span></div>
     <div class="info">
       <div class="card-meta"><span class="badge">${p.isLive ? "LIVE" : esc(p.status || "Viewable")}</span><span class="muted">${esc(p.views ?? "—")} views</span></div>
       ${courseMarkup(p, true)}
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
       <dl><dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd>${instructorMarkup(p)}</dl>
       <details class="presentation-details"><summary>More details</summary><dl><dt>Uploaded</dt><dd>${esc(fmtDate(p.created))}</dd><dt>Owner</dt><dd>${esc(p.owner || "—")}</dd><dt>Folder</dt><dd>${esc(p.folder || "—")}</dd>${parseCourseTitle(p.title).schedule ? `<dt>Schedule</dt><dd>${esc(parseCourseTitle(p.title).schedule)}</dd>` : ""}<dt>Original title</dt><dd>${esc(p.title || "Untitled")}</dd></dl>${p.description ? `<p class="full-description">${esc(p.description)}</p>` : ""}</details>
-      <div class="card-actions"><a class="watch" href="${esc(p.watchUrl)}" target="_blank" rel="noopener">Watch ↗</a><button class="secondary" data-action="flip" aria-label="View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}">Analytics ⤾</button></div>
     </div></div>
-    <div class="card-face card-back info" ${flipped.has(p.id) ? "" : "hidden"}>
-      <div class="panel-head"><span class="eyebrow">Analytics</span><button class="secondary back-button" data-action="back" aria-label="Back to presentation">⤾ Back</button></div>
+    <div class="card-face card-back info" ${flipped.has(p.id) ? "" : 'inert aria-hidden="true"'}>
+      <div class="panel-head"><span class="eyebrow">Analytics</span></div>
       ${courseMarkup(p)}
       <div class="analytics-content" aria-live="polite">${analyticsMarkup(p.id)}</div>
-      <button class="secondary analytics-refresh" data-action="refresh" ${analytics.get(p.id)?.loading ? "disabled" : ""}>Refresh analytics ↻</button>
+    </div></div>
+    <div class="card-actions">
+      <a class="watch" href="${esc(p.watchUrl)}" target="_blank" rel="noopener" ${flipped.has(p.id) ? "hidden" : ""}>Watch ↗</a>
+      <button class="secondary analytics-refresh" data-action="refresh" ${flipped.has(p.id) ? "" : "hidden"} ${analytics.get(p.id)?.loading ? "disabled" : ""}>Refresh ↻</button>
+      <button class="secondary flip-button" data-action="flip" data-analytics-label="View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}" aria-label="${flipped.has(p.id) ? "Back to presentation" : `View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}`}">${flipped.has(p.id) ? "Back ⤾" : "Analytics ⤾"}</button>
     </div></article>`,
     )
     .join("");
@@ -182,16 +207,26 @@ element("list").addEventListener("click", (event) => {
     void loadAnalytics(id, true);
     return;
   }
-  const back = button.dataset.action === "flip";
+  const back = !flipped.has(id);
   if (back) flipped.add(id);
   else flipped.delete(id);
   const frontFace = card.querySelector<HTMLElement>(".card-front")!;
   const backFace = card.querySelector<HTMLElement>(".card-back")!;
-  frontFace.hidden = back;
-  backFace.hidden = !back;
-  (back ? backFace : frontFace)
-    .querySelector<HTMLButtonElement>("button[data-action]")!
-    .focus({ preventScroll: true });
+  card.dataset.flipped = String(back);
+  frontFace.inert = back;
+  frontFace.setAttribute("aria-hidden", String(back));
+  backFace.inert = !back;
+  backFace.setAttribute("aria-hidden", String(!back));
+  card.querySelector<HTMLElement>(".watch")!.hidden = back;
+  card.querySelector<HTMLElement>(".analytics-refresh")!.hidden = !back;
+  button.textContent = back ? "Back ⤾" : "Analytics ⤾";
+  button.setAttribute(
+    "aria-label",
+    back
+      ? "Back to presentation"
+      : button.dataset.analyticsLabel || "View analytics",
+  );
+  button.focus({ preventScroll: true });
   if (back) void loadAnalytics(id);
 });
 async function load() {
@@ -205,6 +240,7 @@ async function load() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
     items = data.items;
+    currentPage = 1;
     render();
   } catch (e) {
     state.className = "bad";
@@ -216,7 +252,24 @@ async function load() {
     refresh.disabled = false;
   }
 }
-search.oninput = render;
-element<HTMLSelectElement>("sort").onchange = render;
+function resetPage() {
+  currentPage = 1;
+  render();
+}
+element("pageControls").addEventListener("click", (event) => {
+  if (!(event.target instanceof Element)) return;
+  const button = event.target.closest<HTMLButtonElement>("button[data-page]");
+  if (!button || button.disabled) return;
+  const page = Number(button.dataset.page);
+  if (page === currentPage) return;
+  currentPage = page;
+  render();
+  // Move readers and keyboard users to the newly displayed results.
+  const list = element("list");
+  list.focus({ preventScroll: true });
+  element("search").scrollIntoView({ block: "start" });
+});
+search.oninput = resetPage;
+element<HTMLSelectElement>("sort").onchange = resetPage;
 element<HTMLButtonElement>("refresh").onclick = load;
 load();

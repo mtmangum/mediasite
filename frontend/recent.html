@@ -70,7 +70,8 @@
         <div class="eyebrow">Your media library</div>
         <h1>The latest, ready to watch.</h1>
         <p class="muted">
-          Browse the five most recently created viewable presentations.
+          Browse the 30 most recently created viewable presentations, nine per
+          page.
         </p>
       </div>
       <div class="toolbar">
@@ -87,10 +88,24 @@
         ><span id="count" class="badge">Loading</span>
       </div>
       <div id="state" role="status">Loading presentations…</div>
-      <div id="list" class="cards"></div>
+      <div
+        id="list"
+        class="cards"
+        tabindex="-1"
+        role="region"
+        aria-label="Presentations"
+      ></div>
+      <nav
+        id="pagination"
+        class="pagination"
+        aria-label="Presentation pages"
+        hidden
+      >
+        <span id="pageRange" class="muted" role="status"></span>
+        <div id="pageControls" class="page-controls"></div>
+      </nav>
       <footer>
-        Showing the latest five viewable presentations available to your
-        account.
+        Showing the latest 30 viewable presentations available to your account.
       </footer>
     </main>
 

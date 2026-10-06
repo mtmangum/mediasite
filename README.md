@@ -4,7 +4,7 @@ A small Node app with a Vite + TypeScript front end for exploring the Mediasite 
 `https://utengr.mediasite.com/Mediasite/Api/v1`.
 
 - **API explorer** (`/`): send GET/POST/PUT/PATCH/DELETE requests, validate JSON bodies, revisit session request history, and copy or download formatted/raw responses.
-- **Recent presentations** (`/recent`): the last five viewable presentations, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
+- **Recent presentations** (`/recent`): the 30 most recently created viewable presentations, nine per page, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
@@ -48,7 +48,8 @@ are generated in `dist/`. Vite runs as middleware in development; credentials ar
 passed to the front-end build. Connection changes apply in memory until restart; blank
 password/API key fields retain the existing secrets. Request history stores only the
 method, path, and status in page memory, and resets when the page reloads. Presentation
-search and sorting apply to the five loaded results. Flip a card with **Analytics** to
+search and sorting apply to all 30 loaded results and return to page one. Use the
+numbered pages or **Previous** / **Next** to browse nine cards at a time. Flip a card with **Analytics** to
 load all-time views, unique users, watch time, first/last watched, peak connections,
 and browser/operating-system totals. **Refresh analytics** reloads those values;
 otherwise they are cached in page memory. The **API responses** disclosure shows
