@@ -49,7 +49,7 @@ npm run dev        # http://localhost:3000, front-end live reload
 npm start          # type-check, build, and serve production assets
 PORT=3100 npm run dev
 npm run build      # strict TypeScript check + production build
-npm test           # analytics normalization and error-handling checks
+npm test           # unit tests, plus the server run against a local fake Mediasite
 npm run typecheck
 npm run format:check
 npm run format
@@ -95,9 +95,12 @@ External videos skip local-file checks.
 
 Thumbnail previews load as cards enter the viewport. The server samples downloadable
 video at approximately 35%, 50%, and 70% through the recording, favors detailed
-slide/whiteboard frames, and rejects mostly dark or blank frames. Use the timestamped
-**Preview ↻** button to cycle through usable samples. The original thumbnail stays
-visible while previews load, or when extraction is unavailable.
+slide/whiteboard frames, and rejects mostly dark or blank frames. Starting from the
+most detailed frame, visible cards step through the samples in recording order
+(beginning, middle, end) every few seconds; hovering or focusing a card pauses it, and
+reduced-motion settings turn automatic stepping off. The small button at the top left
+shows the frame's timestamp and one dot per sample; click it to step manually. The
+original thumbnail stays visible while previews load, or when extraction is unavailable.
 
 Three nearly identical samples produce a **Little visual change** review flag;
 three dark/blank samples produce **Blank sampled frames**. These are screening

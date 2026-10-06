@@ -1,6 +1,7 @@
 import { esc, fmtDate, fmtDuration } from "./format";
 import { parseCourseTitle } from "./course-title";
 import { healthMarkup } from "./health";
+import { viewsTier } from "./views";
 import { analyticsLoading, analyticsMarkup } from "./analytics";
 import type { Presentation } from "./shared";
 
@@ -8,19 +9,6 @@ function courseMarkup(p: Presentation, link = false) {
   const parsed = parseCourseTitle(p.title);
   const label = parsed.sections?.includes(",") ? "Sections" : "Section";
   return `<div class="course-heading">${parsed.course ? `<div class="course-line"><span class="course-code">${esc(parsed.course)}</span><span class="course-section">${label} ${esc(parsed.sections)}</span></div>` : ""}<h2>${link ? `<a href="${esc(p.watchUrl)}" target="_blank" rel="noopener">${esc(parsed.title)}</a>` : esc(parsed.title)}</h2></div>`;
-}
-
-// Color tiers for view counts: 0 red, 1–5 orange, 6–10 yellow, 11–20 lime, 21+ green.
-export function viewsTier(views = 0) {
-  return views === 0
-    ? "none"
-    : views <= 5
-      ? "low"
-      : views <= 10
-        ? "some"
-        : views <= 20
-          ? "good"
-          : "high";
 }
 
 function viewsMarkup(views?: number) {

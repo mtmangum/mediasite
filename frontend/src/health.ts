@@ -27,13 +27,15 @@ export function healthMarkup(p: Presentation) {
     ...(entry?.data?.warnings || p.recordingWarnings || []),
     ...(previewWarnings.has(p.id) ? [previewWarnings.get(p.id)!] : []),
   ];
-  const label = warnings.length
-    ? `${warnings[0].label}${warnings.length > 1 ? ` +${warnings.length - 1}` : ""}`
-    : entry?.error
-      ? "Recording checks unavailable"
-      : entry?.data
-        ? "Recording checks"
-        : "Checking recording…";
+  const label = entry?.error
+    ? "Recording checks unavailable"
+    : entry?.data
+      ? "Recording checks"
+      : "Checking recording…";
+  // The most important warning sits to the right of the label, with a count for any others.
+  const warning = warnings.length
+    ? `<span class="rc-warning">${WARN_ICON}${esc(warnings[0].label)}${warnings.length > 1 ? ` +${warnings.length - 1}` : ""}</span>`
+    : "";
   const classes = [
     "recording-health",
     warnings.some((w) => w.severity === "warning") && "has-warning",
@@ -44,7 +46,7 @@ export function healthMarkup(p: Presentation) {
   const details = entry?.data
     ? `<p><strong>Files:</strong> ${esc(entry.data.media)}</p><p><strong>Audio:</strong> ${esc(entry.data.audio)}</p>`
     : `<p>${esc(entry?.error || "Media and audio-waveform metadata are being checked.")}</p>`;
-  return `<details class="${classes}"><summary>${warnings.length ? WARN_ICON : ""}${esc(label)}</summary><div>${warnings.map((w) => `<p><strong>${esc(w.label)}.</strong> ${esc(w.detail)}</p>`).join("")}${details}</div></details>`;
+  return `<details class="${classes}"><summary><span class="rc-label">${esc(label)}</span>${warning}</summary><div>${warnings.map((w) => `<p><strong>${esc(w.label)}.</strong> ${esc(w.detail)}</p>`).join("")}${details}</div></details>`;
 }
 
 export function updateHealth(id: string) {

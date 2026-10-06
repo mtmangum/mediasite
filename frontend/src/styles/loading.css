@@ -21,7 +21,7 @@
 }
 .skeleton,
 .thumb-wrap[data-loading],
-.recording-health.checking summary {
+.recording-health.checking .rc-label {
   --sk-base: var(--soft);
   --sk-hi: color-mix(in srgb, var(--soft), var(--fg) 12%);
   background: linear-gradient(
@@ -36,17 +36,21 @@
 .thumb-wrap[data-loading] > span {
   opacity: 0.35;
 }
-.recording-health.checking summary {
+.recording-health.checking .rc-label {
+  display: inline-block;
   width: 9.5em;
   height: 12px;
-  min-height: 0;
   margin: 4px 0;
   border-radius: 6px;
   color: transparent;
+  vertical-align: middle;
+}
+/* While checking with nothing to report yet, the row is inert and has no disclosure arrow. */
+.recording-health.checking:not(.has-warning) summary {
   list-style: none;
   pointer-events: none;
 }
-.recording-health.checking summary::-webkit-details-marker {
+.recording-health.checking:not(.has-warning) summary::-webkit-details-marker {
   display: none;
 }
 .skeleton-card .thumb-wrap {
@@ -108,7 +112,7 @@
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
   .thumb-wrap[data-loading],
-  .recording-health.checking summary {
+  .recording-health.checking .rc-label {
     animation: none;
   }
 }

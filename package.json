@@ -12,7 +12,7 @@
     "prestart": "npm run build",
     "format": "prettier --write frontend server.js http-utils.js static.js routes mediasite.js analytics.js recording-health.js thumbnails.js test smoke-test.js vite.config.mjs tsconfig.json",
     "format:check": "prettier --check frontend server.js http-utils.js static.js routes mediasite.js analytics.js recording-health.js thumbnails.js test smoke-test.js vite.config.mjs tsconfig.json",
-    "test": "node --test test/*.test.js"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test test/*.test.js"
   },
   "engines": {
     "node": ">=22"

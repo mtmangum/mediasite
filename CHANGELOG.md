@@ -6,6 +6,7 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Added
 
+- Tests for the front-end list logic (filtering, sorting, pagination, view tiers, formatting), course-title parsing, the Mediasite helpers, and the server's HTTP surface against a fake Mediasite.
 - “Most viewed” sort option (ties fall back to newest first).
 - Cached later-frame thumbnails with a timestamped control to cycle through samples; viewport-triggered, serialized extraction keeps initial card rendering fast and preserves original thumbnails on failure.
 - Review flags for three nearly unchanged or blank sampled frames, with clear limitations and sample timestamps.
@@ -16,6 +17,8 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ### Changed
 
+- Frame previews now step automatically through the samples in recording order (every four seconds, staggered, paused on hover or focus, off under reduced motion) with a crossfade; the cycle button is smaller and shows the timestamp plus one dot per sample.
+- A recording warning (such as “Little visual change”) now appears to the right of the “Recording checks” label instead of replacing it, so the row reads the same with or without a warning.
 - Internal restructure with no intended behavior change: the server is split into route modules; the presentations page script is split into focused modules (cards, pagination, list logic, health, previews, analytics, formatting, HTTP helpers); the stylesheet is split by area into `frontend/src/styles/`. Duplicated auth-header logic, HTML escaping, time formatting, and fetch/error handling are now shared, and `mediasite.js` is formatted with Prettier like the rest.
 - The API explorer's “Recent presentations” preset now requests 100 items, matching the Presentations page.
 - Loading states use shimmer placeholders: skeleton cards while the list loads or refreshes, a sweeping highlight on thumbnails until the image arrives, a placeholder for pending recording checks, and skeleton blocks for analytics and viewing charts. Reduced-motion users get static placeholders.
