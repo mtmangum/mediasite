@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Explorer · Mediasite</title>
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply the preference before styles load to avoid a light flash.
+      (() => {
+        let saved;
+        try {
+          saved = localStorage.getItem("mediasite-theme");
+        } catch {}
+        document.documentElement.dataset.theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <a class="brand" href="/"
+          ><span class="logo">m</span>Mediasite
+          <span class="badge">LAB</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a class="active" href="/" aria-current="page">API explorer</a
+          ><a href="/recent">Presentations</a>
+        </nav>
+        <span class="local">Local workspace</span>
+        <button
+          id="themeToggle"
+          class="secondary theme-toggle"
+          type="button"
+          aria-label="Switch color theme"
+        >
+          <svg
+            class="theme-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <path
+              class="moon"
+              d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"
+            />
+            <g class="sun">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+              />
+            </g>
+          </svg>
+          <span id="themeLabel">Dark mode</span>
+        </button>
+      </div>
+    </header>
+    <main>
+      <div class="intro">
+        <div class="eyebrow">Developer workspace</div>
+        <h1>A closer look at your API.</h1>
+        <p class="muted">
+          Explore endpoints, inspect responses, and find your next presentation.
+        </p>
+      </div>
+      <div class="layout">
+        <aside>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Quick requests</h2>
+              <span class="badge">GET</span>
+            </div>
+            <div id="presets"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Recent requests</h2>
+              <button
+                id="clearHistory"
+                class="secondary"
+                style="padding: 4px 8px; font-size: 11px"
+              >
+                Clear
+              </button>
+            </div>
+            <div id="history" class="history"></div>
+            <p class="muted" style="font-size: 11px">
+              This session only. Select a request to load it.
+            </p>
+          </section>
+        </aside>
+        <div>
+          <section class="panel">
+            <details id="connection">
+              <summary>
+                Connection <span id="cfgStatus" class="badge">Loading…</span>
+              </summary>
+              <label for="baseUrl">API base URL</label
+              ><input
+                id="baseUrl"
+                style="width: 100%"
+                placeholder="https://…/Api/v1"
+              />
+              <div class="fields">
+                <div>
+                  <label for="username">Username</label
+                  ><input id="username" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="password">Password</label
+                  ><input id="password" type="password" autocomplete="off" />
+                </div>
+                <div>
+                  <label for="apiKey">API key · sfapikey</label
+                  ><input id="apiKey" type="password" autocomplete="off" />
+                </div>
+              </div>
+              <div class="row">
+                <button id="save" class="secondary">Apply settings</button
+                ><span class="muted" style="font-size: 12px"
+                  >Leave secrets blank to keep current values. Changes last
+                  until restart.</span
+                >
+              </div>
+              <p id="configMessage" role="status"></p>
+            </details>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Request builder</h2>
+              <span class="muted" style="font-size: 12px"
+                >Enter to send · ⌘ / Ctrl + Enter for body</span
+              >
+            </div>
+            <div class="row request-row">
+              <select id="method" aria-label="HTTP method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option></select
+              ><input
+                id="path"
+                aria-label="Endpoint path"
+                value="/Home"
+              /><button id="send">Send request ↗</button>
+            </div>
+            <div id="bodyField" hidden>
+              <label for="body">Request body · JSON</label
+              ><textarea
+                id="body"
+                placeholder='{"Title": "My presentation"}'
+              ></textarea>
+            </div>
+            <p id="requestError" class="bad" role="alert"></p>
+          </section>
+          <section class="panel response-panel">
+            <div class="panel-head">
+              <h2>Response</h2>
+              <div class="row">
+                <button id="format" class="secondary" disabled>Raw</button
+                ><button id="copy" class="secondary" disabled>
+                  Copy response</button
+                ><button id="download" class="secondary" disabled>
+                  Download
+                </button>
+              </div>
+            </div>
+            <div id="meta" class="muted" role="status">Ready when you are</div>
+            <div id="empty" class="empty-response">
+              <div class="symbol">{ }</div>
+              <h2>Every request starts a discovery.</h2>
+              <p>Select a quick request or enter an endpoint above.</p>
+            </div>
+            <pre id="out" hidden></pre>
+          </section>
+        </div>
+      </div>
+      <footer>
+        Mediasite API Lab · Credentials are held on your local server.
+      </footer>
+    </main>
+    <script type="module" src="/src/explorer.ts"></script>
+  </body>
+</html>

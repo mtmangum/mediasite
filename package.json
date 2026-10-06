@@ -5,7 +5,21 @@
   "private": true,
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "smoke": "node --env-file-if-exists=.env smoke-test.js"
+    "smoke": "node --env-file-if-exists=.env smoke-test.js",
+    "dev": "node --env-file-if-exists=.env server.js --dev",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "prestart": "npm run build",
+    "format": "prettier --write frontend server.js analytics.js test smoke-test.js vite.config.mjs tsconfig.json",
+    "format:check": "prettier --check frontend server.js analytics.js test smoke-test.js vite.config.mjs tsconfig.json",
+    "test": "node --test test/*.test.js"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
+  }
 }

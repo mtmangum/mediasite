@@ -1,17 +1,18 @@
 # Mediasite API Tester
 
-A small, dependency-free Node app for exploring the Mediasite REST API at
+A small Node app with a Vite + TypeScript front end for exploring the Mediasite REST API at
 `https://utengr.mediasite.com/Mediasite/Api/v1`.
 
-- **API tester** (`/`): send GET/POST/PUT/PATCH/DELETE requests and inspect the response.
-- **Recent presentations** (`/recent`): the last five viewable presentations, with thumbnails and details.
+- **API explorer** (`/`): send GET/POST/PUT/PATCH/DELETE requests, validate JSON bodies, revisit session request history, and copy or download formatted/raw responses.
+- **Recent presentations** (`/recent`): the last five viewable presentations, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
-Requires Node 22 or newer. There is nothing to install.
+Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
 
 ## Setup
 
 ```sh
+npm install
 cp .env.example .env
 ```
 
@@ -29,10 +30,30 @@ Then fill in `.env`:
 ## Run
 
 ```sh
-npm start          # http://localhost:3000
-PORT=3100 npm start
+npm run dev        # http://localhost:3000, front-end live reload
+npm start          # type-check, build, and serve production assets
+PORT=3100 npm run dev
+npm run build      # strict TypeScript check + production build
+npm test           # analytics normalization and error-handling checks
+npm run typecheck
+npm run format:check
+npm run format
 npm run smoke
 ```
+
+Restart `npm run dev` after changing backend files or Vite configuration.
+
+Both modes serve the browser and API from the same localhost origin. Production files
+are generated in `dist/`. Vite runs as middleware in development; credentials are never
+passed to the front-end build. Connection changes apply in memory until restart; blank
+password/API key fields retain the existing secrets. Request history stores only the
+method, path, and status in page memory, and resets when the page reloads. Presentation
+search and sorting apply to the five loaded results. Flip a card with **Analytics** to
+load all-time views, unique users, watch time, first/last watched, peak connections,
+and browser/operating-system totals. **Refresh analytics** reloads those values;
+otherwise they are cached in page memory. The **API responses** disclosure shows
+endpoint status/timing and the aggregate JSON. Missing values appear as a dash;
+permission errors and unavailable platform data are shown explicitly.
 
 ## What needs which credentials
 
@@ -54,8 +75,12 @@ npm run smoke
 
 ## Files
 
-- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`)
+- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`)
+- `analytics.js` — aggregate analytics requests and normalization
 - `mediasite.js` — shared request helper (auth headers, timing)
 - `smoke-test.js` — CLI checks
-- `public/index.html` — API tester UI
-- `public/recent.html` — recent presentations page
+- `frontend/index.html` / `frontend/recent.html` — accessible page markup
+- `frontend/src/explorer.ts` / `presentations.ts` — page interactions
+- `frontend/src/shared.ts` — shared DOM helpers and API types
+- `frontend/src/style.css` — responsive visual system
+- `vite.config.mjs` / `tsconfig.json` — build and strict type-check settings

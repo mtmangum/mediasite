@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recent Presentations</title>
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Apply the preference before styles load to avoid a light flash.
+      (() => {
+        let saved;
+        try {
+          saved = localStorage.getItem("mediasite-theme");
+        } catch {}
+        document.documentElement.dataset.theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <a class="brand" href="/"
+          ><span class="logo">m</span>Mediasite
+          <span class="badge">LAB</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="/">API explorer</a
+          ><a class="active" href="/recent" aria-current="page"
+            >Presentations</a
+          >
+        </nav>
+        <span class="local">Local workspace</span>
+        <button
+          id="themeToggle"
+          class="secondary theme-toggle"
+          type="button"
+          aria-label="Switch color theme"
+        >
+          <svg
+            class="theme-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <path
+              class="moon"
+              d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"
+            />
+            <g class="sun">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+              />
+            </g>
+          </svg>
+          <span id="themeLabel">Dark mode</span>
+        </button>
+      </div>
+    </header>
+    <main>
+      <div class="intro">
+        <div class="eyebrow">Your media library</div>
+        <h1>The latest, ready to watch.</h1>
+        <p class="muted">
+          Browse the five most recently created viewable presentations.
+        </p>
+      </div>
+      <div class="toolbar">
+        <input
+          id="search"
+          type="search"
+          aria-label="Search loaded presentations"
+          placeholder="Search these presentations by title, presenter, or folder…"
+        /><select id="sort" aria-label="Sort presentations">
+          <option value="newest">Newest first</option>
+          <option value="title">Title A–Z</option>
+          <option value="duration">Longest first</option></select
+        ><button id="refresh">Refresh ↻</button
+        ><span id="count" class="badge">Loading</span>
+      </div>
+      <div id="state" role="status">Loading presentations…</div>
+      <div id="list" class="cards"></div>
+      <footer>
+        Showing the latest five viewable presentations available to your
+        account.
+      </footer>
+    </main>
+
+    <script type="module" src="/src/presentations.ts"></script>
+  </body>
+</html>
