@@ -1,4 +1,4 @@
-// The built-in sample API behind the GitHub Pages demo: deterministic, self-consistent, fictional.
+// The sample API uses fictional metadata and analytics with bundled real screenshots.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -108,7 +108,9 @@ test("endpoints answer like the real server, including errors", async () => {
   const preview = await call(`/preview.json?id=${id}`);
   assert.equal(preview.body.frames.length, 3);
   assert.ok(
-    preview.body.frames.every((f) => f.url.startsWith("data:image/svg+xml")),
+    preview.body.frames.every((f) =>
+      /^\/demo-thumbnails\/lecture-\d{2}-[123]\.jpg$/.test(f.url),
+    ),
   );
 
   const health = await call(`/health.json?id=${id}`);
@@ -128,4 +130,26 @@ test("endpoints answer like the real server, including errors", async () => {
     "the API explorer is not part of the demo",
   );
   assert.equal(await call("/config"), null);
+});
+
+test("demo thumbnails and hover frames resolve to bundled JPEGs without remote URLs", async () => {
+  const { readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  const { demoLibrary } = await load();
+  const images = new Set();
+  for (const { item, staticReview } of demoLibrary(NOW)) {
+    const { body: preview } = await call(`/preview.json?id=${item.id}`);
+    const urls = [item.thumbnail, ...preview.frames.map((f) => f.url)];
+    for (const url of urls) {
+      assert.match(url, /^\/demo-thumbnails\/lecture-\d{2}-[123]\.jpg$/);
+      images.add(url);
+      const bytes = readFileSync(join(__dirname, "../frontend/public", url));
+      assert.equal(bytes.readUInt16BE(0), 0xffd8, "JPEG signature");
+    }
+    assert.equal(
+      new Set(preview.frames.map((f) => f.url)).size,
+      staticReview ? 1 : 3,
+    );
+  }
+  assert.equal(images.size, 36, "three screenshots per course");
 });

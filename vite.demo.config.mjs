@@ -26,7 +26,7 @@ const demoSite = {
         .replace(
           /<body[^>]*>/,
           (body) =>
-            `${body}<div class="demo-banner" role="note"><strong>Demo</strong> · sample data, not connected to Mediasite · <a href="${REPO}">Source on GitHub</a></div>`,
+            `${body}<div class="demo-banner" role="note"><strong>Demo</strong> · real lecture screenshots · sample titles and analytics · no live Mediasite connection · <a href="${REPO}">Source on GitHub</a></div>`,
         ),
   },
   // Pages has no server routing: the app is the site root, /recent, and (via 404.html, which

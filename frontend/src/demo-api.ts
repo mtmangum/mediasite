@@ -1,7 +1,6 @@
-// A stand-in for the local server, used by the static GitHub Pages demo. Everything here is
-// fictional and deterministic: courses, people, sessions, and thumbnails are generated from the
-// presentation id, and every endpoint (counts, charts, previews) is derived from the same
-// generated sessions so the numbers agree with each other. No Mediasite data is involved.
+// A stand-in for the local server, used by the static GitHub Pages demo. Courses, people,
+// and sessions are fictional and deterministic; screenshots are bundled real lecture frames.
+// Counts and charts come from the same generated sessions. No live Mediasite calls are made.
 // This file has no runtime imports so it can be unit-tested directly.
 import type {
   Analytics,
@@ -135,37 +134,11 @@ export interface DemoRecord {
   staticReview: boolean;
 }
 
-function escapeXml(text: string) {
-  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
-// A 16:9 stand-in for a lecture frame: a tinted board with course text and a few shapes.
-function frameImage(
-  course: (typeof COURSES)[number],
-  index: number,
-  variant: number,
-) {
-  const hue = (hash(course.code) % 300) + 20;
-  const art = [
-    // bullet list
-    [0, 1, 2, 3]
-      .map(
-        (i) =>
-          `<circle cx="70" cy="${150 + i * 44}" r="5" fill="hsl(${hue} 70% 70%)"/><rect x="90" y="${142 + i * 44}" width="${300 - ((i * 53) % 120)}" height="14" rx="7" fill="hsl(${hue} 20% 82% / .8)"/>`,
-      )
-      .join(""),
-    // a chart
-    `<path d="M70 300 V140 M70 300 H420" stroke="hsl(${hue} 20% 82%)" stroke-width="3" fill="none"/><polyline points="70,280 130,240 190,252 250,190 310,200 370,150" stroke="hsl(${hue} 80% 65%)" stroke-width="5" fill="none"/>`,
-    // blocks and arrows
-    [0, 1, 2]
-      .map(
-        (i) =>
-          `<rect x="${70 + i * 140}" y="170" width="100" height="70" rx="10" fill="hsl(${hue} 50% 40%)"/>${i < 2 ? `<path d="M${172 + i * 140} 205 H${206 + i * 140}" stroke="hsl(${hue} 20% 82%)" stroke-width="4"/>` : ""}`,
-      )
-      .join(""),
-  ][variant % 3];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 38% 24%)"/><stop offset="1" stop-color="hsl(${(hue + 25) % 360} 42% 12%)"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><text x="48" y="76" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="hsl(${hue} 90% 78%)">${escapeXml(course.code)}</text><text x="48" y="108" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="hsl(${hue} 20% 90%)">${escapeXml(course.title)}</text>${art}<text x="592" y="336" text-anchor="end" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="hsl(${hue} 20% 80% / .7)">demo · lecture ${index + 1}</text></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+// Static assets work both at the site root and under the GitHub Pages sub-path.
+const BASE: string = import.meta.env?.BASE_URL ?? "/";
+function frameImage(courseIndex: number, variant: number) {
+  const lecture = String(courseIndex + 1).padStart(2, "0");
+  return `${BASE}demo-thumbnails/lecture-${lecture}-${variant + 1}.jpg`;
 }
 
 function makeRecord(courseIndex: number, k: number, now: number): DemoRecord {
@@ -295,7 +268,7 @@ function makeRecord(courseIndex: number, k: number, now: number): DemoRecord {
       views: sessions.length,
       folder: `${course.code} ${course.title}`,
       isLive: false,
-      thumbnail: frameImage(course, k, 0),
+      thumbnail: frameImage(courseIndex, 0),
       watchUrl: `${DEMO_REPO}#demo`,
     },
     duration,
@@ -415,11 +388,10 @@ function analyticsFor(record: DemoRecord): Analytics {
 }
 
 function previewFor(record: DemoRecord) {
-  const course = COURSES[record.courseIndex];
   const at = [0.5, 0.7, 0.35]; // most detailed frame first, as the real server ranks them
   const frames = at.map((fraction, variant) => ({
     seconds: Math.round(record.duration * fraction),
-    url: frameImage(course, variant + 1, variant),
+    url: frameImage(record.courseIndex, record.staticReview ? 0 : variant),
   }));
   return {
     review: record.staticReview

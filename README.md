@@ -204,8 +204,9 @@ placeholder stands in until each count arrives; if a lookup fails, the list's co
 ## Demo site (GitHub Pages)
 
 `npm run build:demo` builds a static copy of the presentations page into `dist-demo/` that
-runs entirely in the browser against built-in sample data (fictional courses and viewers,
-generated thumbnails; no Mediasite connection, credentials, or real recordings). The API
+runs entirely in the browser with bundled real lecture screenshots and sample data
+(fictional titles, people, and analytics; no live Mediasite connection or credentials).
+Screenshots are illustrative and do not correspond to the fictional course metadata. The API
 explorer is local-only and is not part of the public site. `npm run preview:demo`
 serves it at http://localhost:4173/mediasite/. The sub-path comes from `DEMO_BASE` (default
 `/mediasite/`).
