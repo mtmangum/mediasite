@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Recent Presentations</title>
     <meta name="color-scheme" content="light dark" />
+    <link
+      rel="preload"
+      href="/src/fonts/InterVariable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <script>
       // Apply the preference before styles load to avoid a light flash.
       (() => {
@@ -25,54 +32,79 @@
   <body>
     <header>
       <div class="topbar">
-        <a class="brand" href="/"
-          ><span class="logo">m</span>Mediasite
-          <span class="badge">LAB</span></a
+        <a
+          class="university-brand"
+          href="https://www.utexas.edu/"
+          aria-label="The University of Texas at Austin"
         >
+          <img
+            class="wordmark-orange"
+            src="/brand/ut-wordmark.svg"
+            width="278"
+            height="78"
+            alt="The University of Texas at Austin"
+          />
+          <img
+            class="wordmark-white"
+            src="/brand/ut-wordmark-white.svg"
+            width="278"
+            height="78"
+            alt="The University of Texas at Austin"
+          />
+        </a>
+        <a class="brand" href="/">Mediasite <span class="badge">LAB</span></a>
         <nav aria-label="Main navigation">
           <a href="/">API explorer</a
           ><a class="active" href="/recent" aria-current="page"
             >Presentations</a
           >
         </nav>
-        <span class="local">Local workspace</span>
-        <button
-          id="themeToggle"
-          class="secondary theme-toggle"
-          type="button"
-          aria-label="Switch color theme"
-        >
-          <svg
-            class="theme-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.7"
-            aria-hidden="true"
-          >
-            <path
-              class="moon"
-              d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"
-            />
-            <g class="sun">
-              <circle cx="12" cy="12" r="4" />
-              <path
-                d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
-              />
-            </g>
-          </svg>
-          <span id="themeLabel">Dark mode</span>
-        </button>
       </div>
     </header>
     <main>
-      <div class="intro">
-        <div class="eyebrow">Your media library</div>
-        <h1>The latest, ready to watch.</h1>
-        <p class="muted">
-          Browse the 30 most recently created viewable presentations, nine per
-          page.
-        </p>
+      <div class="page-head">
+        <div class="intro">
+          <div class="eyebrow">Your media library</div>
+          <h1>The latest, ready to watch.</h1>
+          <p class="muted">
+            Browse the 30 most recently created viewable presentations, nine per
+            page.
+          </p>
+        </div>
+        <div
+          class="workspace-tools"
+          role="group"
+          aria-label="Workspace preferences"
+        >
+          <span class="local">Local workspace</span>
+          <button
+            id="themeToggle"
+            class="secondary theme-toggle"
+            type="button"
+            aria-label="Switch color theme"
+          >
+            <svg
+              class="theme-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              aria-hidden="true"
+            >
+              <path
+                class="moon"
+                d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"
+              />
+              <g class="sun">
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+                />
+              </g>
+            </svg>
+            <span id="themeLabel">Dark mode</span>
+          </button>
+        </div>
       </div>
       <div class="toolbar">
         <input

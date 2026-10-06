@@ -158,6 +158,8 @@ async function start() {
             ".css": "text/css",
             ".js": "text/javascript",
             ".svg": "image/svg+xml",
+            ".woff2": "font/woff2",
+            ".txt": "text/plain; charset=utf-8",
           };
           res.writeHead(200, {
             "Content-Type":

@@ -3,11 +3,26 @@
 A small Node app with a Vite + TypeScript front end for exploring the Mediasite REST API at
 `https://utengr.mediasite.com/Mediasite/Api/v1`.
 
+Current version: **0.1.0**. See the [changelog](CHANGELOG.md) for release notes.
+
 - **API explorer** (`/`): send GET/POST/PUT/PATCH/DELETE requests, validate JSON bodies, revisit session request history, and copy or download formatted/raw responses.
 - **Recent presentations** (`/recent`): the 30 most recently created viewable presentations, nine per page, with thumbnails, local search, sorting, refresh, watch links, and cards that flip to live aggregate analytics.
 - **Smoke test** (`npm run smoke`): quick pass/fail check of key endpoints from the command line.
 
 Requires Node 22.12 or newer. The browser uses native DOM APIs and CSS; Vite, TypeScript, and Prettier are development tools.
+
+Typography uses a self-hosted Inter 4.1 variable font, with system fonts as a fallback
+and monospace for API data. The font is bundled with the app, so browsers make no
+requests to external font services. Its SIL Open Font License is included at
+`frontend/public/fonts/OFL.txt`.
+
+The interface uses [UT's brand palette](https://umac.utexas.edu/brand-center/colors/),
+with `#bf5700` burnt orange for primary actions and charcoal/neutral surfaces for
+dark mode. Inter remains the UI and card typeface. The primary horizontal university
+wordmark in `frontend/public/brand/` comes from the
+[Brand Center's official SVG](https://umac.utexas.edu/wp-content/themes/bellmont/dist/images/utexas-primary-horizontal-logo.svg).
+Its vector paths and proportions are preserved; the dark-mode asset uses the
+[permitted white reverse](https://brand.utexas.edu/identity/logos/).
 
 ## Setup
 

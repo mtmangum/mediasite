@@ -111,17 +111,21 @@ function render() {
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
       <dl><dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd>${instructorMarkup(p)}</dl>
       <details class="presentation-details"><summary>More details</summary><dl><dt>Uploaded</dt><dd>${esc(fmtDate(p.created))}</dd><dt>Owner</dt><dd>${esc(p.owner || "—")}</dd><dt>Folder</dt><dd>${esc(p.folder || "—")}</dd>${parseCourseTitle(p.title).schedule ? `<dt>Schedule</dt><dd>${esc(parseCourseTitle(p.title).schedule)}</dd>` : ""}<dt>Original title</dt><dd>${esc(p.title || "Untitled")}</dd></dl>${p.description ? `<p class="full-description">${esc(p.description)}</p>` : ""}</details>
+    </div>
+    <div class="card-actions">
+      <a class="watch" href="${esc(p.watchUrl)}" target="_blank" rel="noopener">Watch ↗</a>
+      <button class="secondary flip-button" data-action="flip" aria-label="View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}">Analytics ⤾</button>
     </div></div>
-    <div class="card-face card-back info" ${flipped.has(p.id) ? "" : 'inert aria-hidden="true"'}>
+    <div class="card-face card-back" ${flipped.has(p.id) ? "" : 'inert aria-hidden="true"'}>
+    <div class="info card-back-content">
       <div class="panel-head"><span class="eyebrow">Analytics</span></div>
       ${courseMarkup(p)}
       <div class="analytics-content" aria-live="polite">${analyticsMarkup(p.id)}</div>
-    </div></div>
+    </div>
     <div class="card-actions">
-      <a class="watch" href="${esc(p.watchUrl)}" target="_blank" rel="noopener" ${flipped.has(p.id) ? "hidden" : ""}>Watch ↗</a>
-      <button class="secondary analytics-refresh" data-action="refresh" ${flipped.has(p.id) ? "" : "hidden"} ${analytics.get(p.id)?.loading ? "disabled" : ""}>Refresh ↻</button>
-      <button class="secondary flip-button" data-action="flip" data-analytics-label="View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}" aria-label="${flipped.has(p.id) ? "Back to presentation" : `View analytics for ${esc([parseCourseTitle(p.title).course, parseCourseTitle(p.title).title, parseCourseTitle(p.title).sections].filter(Boolean).join(", "))}`}">${flipped.has(p.id) ? "Back ⤾" : "Analytics ⤾"}</button>
-    </div></article>`,
+      <button class="secondary analytics-refresh" data-action="refresh" ${analytics.get(p.id)?.loading ? "disabled" : ""}>Refresh ↻</button>
+      <button class="secondary flip-button" data-action="flip" aria-label="Back to presentation">Back ⤾</button>
+    </div></div></div></article>`,
     )
     .join("");
   document
@@ -217,16 +221,9 @@ element("list").addEventListener("click", (event) => {
   frontFace.setAttribute("aria-hidden", String(back));
   backFace.inert = !back;
   backFace.setAttribute("aria-hidden", String(!back));
-  card.querySelector<HTMLElement>(".watch")!.hidden = back;
-  card.querySelector<HTMLElement>(".analytics-refresh")!.hidden = !back;
-  button.textContent = back ? "Back ⤾" : "Analytics ⤾";
-  button.setAttribute(
-    "aria-label",
-    back
-      ? "Back to presentation"
-      : button.dataset.analyticsLabel || "View analytics",
-  );
-  button.focus({ preventScroll: true });
+  (back ? backFace : frontFace)
+    .querySelector<HTMLButtonElement>('[data-action="flip"]')!
+    .focus({ preventScroll: true });
   if (back) void loadAnalytics(id);
 });
 async function load() {
