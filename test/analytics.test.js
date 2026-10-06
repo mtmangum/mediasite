@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { getAnalytics } = require("../analytics");
+const { getAnalytics, getViewingCharts } = require("../analytics");
 const id = "presentation-1";
 const reply = (body, status = 200) => ({
   status,
@@ -54,5 +54,146 @@ test("reports denied analytics permissions as an error rather than zero activity
   await assert.rejects(
     getAnalytics({}, id, async () => reply({}, 403)),
     { status: 403, message: /permission/ },
+  );
+});
+
+const chartsConfig = { baseUrl: "https://example.test/Mediasite/Api/v1" };
+test("charts follow pagination, preserve timeline zeros, and aggregate session durations without identities", async () => {
+  const paths = [];
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) => {
+    paths.push(req.path);
+    if (req.path.includes("ViewingTrends"))
+      return reply({
+        value: [
+          { StartTime: 30, Duration: 30, Views: 0 },
+          { StartTime: 0, Duration: 30, Views: "3" },
+        ],
+      });
+    if (req.path.includes("$skip=2"))
+      return reply({
+        value: [60, 300, 720].map((TimeWatchedSeconds) => ({
+          TimeWatchedSeconds,
+          UserName: "private-name",
+          IPAddress: "private-address",
+        })),
+      });
+    return reply({
+      value: [
+        { TimeWatchedSeconds: 0 },
+        { TimeWatchedSeconds: "59" },
+        { TimeWatchedSeconds: null },
+        { TimeWatchedSeconds: -1 },
+      ],
+      "odata.nextLink":
+        chartsConfig.baseUrl +
+        `/PresentationAnalytics('${id}')/ViewingSessions?$skip=2`,
+    });
+  });
+  assert.deepEqual(data.timeline, [
+    { startSeconds: 0, durationSeconds: 30, views: 3 },
+    { startSeconds: 30, durationSeconds: 30, views: 0 },
+  ]);
+  assert.equal(data.histogram.binSeconds, 300);
+  assert.deepEqual(data.histogram.bins, [
+    { startSeconds: 0, endSeconds: 300, sessions: 2 },
+    { startSeconds: 300, endSeconds: 600, sessions: 1 },
+    { startSeconds: 600, endSeconds: 900, sessions: 1 },
+  ]);
+  assert.equal(data.histogram.totalSessions, 7);
+  assert.equal(data.histogram.zeroSeconds, 1);
+  assert.equal(data.histogram.unknownSeconds, 2);
+  assert.equal(data.histogram.watchedSessions, 4);
+  assert.equal(data.requests.length, 3);
+  assert.ok(paths.some((path) => path.includes("$select=TimeWatchedSeconds")));
+  assert.doesNotMatch(
+    JSON.stringify(data),
+    /private-name|private-address|UserName|IPAddress/,
+  );
+});
+
+test("an unavailable histogram does not hide the timeline or invent zero activity", async () => {
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+    req.path.includes("ViewingSessions")
+      ? reply({}, 403)
+      : reply({ value: [{ StartTime: 0, Duration: 30, Views: 5 }] }),
+  );
+  assert.equal(data.histogram, null);
+  assert.match(data.histogramError, /permission/);
+  assert.equal(data.timeline[0].views, 5);
+});
+
+test("empty reports and zero-duration opens remain distinct", async () => {
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+    reply({
+      value: req.path.includes("ViewingSessions")
+        ? [{ TimeWatchedSeconds: 0 }]
+        : [],
+    }),
+  );
+  assert.deepEqual(data.timeline, []);
+  assert.deepEqual(data.histogram.bins, []);
+  assert.equal(data.histogram.zeroSeconds, 1);
+  assert.equal(data.histogram.totalSessions, 1);
+  assert.equal(data.histogramError, null);
+});
+
+test("histogram boundaries include exact minute values in the next bucket", async () => {
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+    reply({
+      value: req.path.includes("ViewingSessions")
+        ? [1, 59, 60, 119, 120].map((TimeWatchedSeconds) => ({
+            TimeWatchedSeconds,
+          }))
+        : [],
+    }),
+  );
+  assert.equal(data.histogram.binSeconds, 60);
+  assert.deepEqual(
+    data.histogram.bins.map((bin) => bin.sessions),
+    [2, 2, 1],
+  );
+});
+
+test("blank or malformed durations are unavailable instead of zero-second opens", async () => {
+  const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+    reply({
+      value: req.path.includes("ViewingSessions")
+        ? ["", " ", false, {}, "invalid", Infinity].map(
+            (TimeWatchedSeconds) => ({ TimeWatchedSeconds }),
+          )
+        : [],
+    }),
+  );
+  assert.equal(data.histogram.zeroSeconds, 0);
+  assert.equal(data.histogram.unknownSeconds, 6);
+  assert.equal(data.histogram.watchedSessions, 0);
+});
+
+test("incomplete or foreign pagination is unavailable rather than a partial histogram", async () => {
+  for (const nextLink of [
+    "https://foreign.test/data",
+    chartsConfig.baseUrl +
+      `/PresentationAnalytics('${id}')/ViewingSessions?$select=TimeWatchedSeconds&$top=1000`,
+  ]) {
+    const data = await getViewingCharts(chartsConfig, id, async (_, req) =>
+      reply({
+        value: [],
+        ...(req.path.includes("ViewingSessions")
+          ? { "@odata.nextLink": nextLink }
+          : {}),
+      }),
+    );
+    assert.equal(data.histogram, null);
+    assert.ok(data.histogramError);
+    assert.deepEqual(data.timeline, []);
+  }
+});
+
+test("chart requests reject invalid IDs before contacting Mediasite", async () => {
+  await assert.rejects(
+    getViewingCharts(chartsConfig, "../secret", () => {
+      throw Error("must not be called");
+    }),
+    { status: 400 },
   );
 });

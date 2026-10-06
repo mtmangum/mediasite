@@ -1,12 +1,15 @@
 const { callApi } = require("./mediasite");
 
-// Aggregate analytics only; individual viewer identities are not needed by the cards.
-async function getAnalytics(cfg, id, request = callApi) {
+function validateId(id) {
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id || "")) {
     const error = new Error("Invalid presentation ID");
     error.status = 400;
     throw error;
   }
+}
+// Aggregate analytics only; individual viewer identities are not needed by the cards.
+async function getAnalytics(cfg, id, request = callApi) {
+  validateId(id);
   const endpoint = `/PresentationAnalytics('${id}')`;
   const summary = await request(cfg, { path: endpoint });
   if (summary.status !== 200) {
@@ -65,4 +68,113 @@ async function getAnalytics(cfg, id, request = callApi) {
     fetchedAt: new Date().toISOString(),
   };
 }
-module.exports = { getAnalytics };
+const nonnegative = (value) => {
+  if (
+    typeof value !== "number" &&
+    (typeof value !== "string" || value.trim() === "")
+  )
+    return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+function durationHistogram(rows) {
+  const seconds = rows.map((row) => nonnegative(row.TimeWatchedSeconds));
+  const watched = seconds.filter((s) => s !== null && s > 0);
+  const longest = watched.reduce((max, s) => Math.max(max, s), 0);
+  // Equal-width bins, with at most twelve bars, including exact boundaries.
+  const binSeconds =
+    [60, 300, 600, 900, 1800, 3600].find(
+      (width) => Math.floor(longest / width) < 12,
+    ) || Math.ceil((longest + 1) / 12 / 3600) * 3600;
+  const bins = watched.length
+    ? Array.from({ length: Math.floor(longest / binSeconds) + 1 }, (_, i) => ({
+        startSeconds: i * binSeconds,
+        endSeconds: (i + 1) * binSeconds,
+        sessions: 0,
+      }))
+    : [];
+  for (const s of watched) bins[Math.floor(s / binSeconds)].sessions++;
+  return {
+    bins,
+    binSeconds,
+    totalSessions: rows.length,
+    watchedSessions: watched.length,
+    zeroSeconds: seconds.filter((s) => s === 0).length,
+    unknownSeconds: seconds.filter((s) => s === null).length,
+  };
+}
+
+async function getViewingCharts(cfg, id, request = callApi) {
+  validateId(id);
+  const endpoint = `/PresentationAnalytics('${id}')`;
+  const requests = [];
+  async function collection(path) {
+    const rows = [];
+    const visited = new Set();
+    while (path) {
+      if (visited.has(path) || visited.size >= 20)
+        throw new Error("The report is too large to load completely.");
+      visited.add(path);
+      const result = await request(cfg, { path });
+      requests.push({ endpoint: path, status: result.status, ms: result.ms });
+      if (result.status !== 200)
+        throw new Error(
+          [401, 403].includes(result.status)
+            ? "Your login does not have permission to view this report."
+            : `Mediasite returned HTTP ${result.status}.`,
+        );
+      const data = JSON.parse(result.body);
+      if (!Array.isArray(data.value)) throw new Error("Invalid report data.");
+      rows.push(...data.value);
+      const next = data["@odata.nextLink"] || data["odata.nextLink"];
+      const pageUrl = cfg.baseUrl + path;
+      path = null;
+      if (next) {
+        const root = new URL(cfg.baseUrl);
+        const url = new URL(next, pageUrl);
+        if (
+          url.origin !== root.origin ||
+          !url.pathname.startsWith(root.pathname + "/")
+        )
+          throw new Error("Invalid report pagination link.");
+        path = url.pathname.slice(root.pathname.length) + url.search;
+      }
+    }
+    return rows;
+  }
+  const [timelineResult, histogramResult] = await Promise.allSettled([
+    collection(`${endpoint}/ViewingTrends?$top=1000`).then((rows) =>
+      rows
+        .map((row) => {
+          const startSeconds = nonnegative(row.StartTime);
+          const durationSeconds = nonnegative(row.Duration);
+          const views = nonnegative(row.Views);
+          if (startSeconds === null || !durationSeconds || views === null)
+            throw new Error("Invalid viewing timeline data.");
+          return { startSeconds, durationSeconds, views };
+        })
+        .sort((a, b) => a.startSeconds - b.startSeconds),
+    ),
+    collection(
+      `${endpoint}/ViewingSessions?$select=TimeWatchedSeconds&$top=1000`,
+    ).then(durationHistogram),
+  ]);
+  return {
+    timeline:
+      timelineResult.status === "fulfilled" ? timelineResult.value : null,
+    timelineError:
+      timelineResult.status === "rejected"
+        ? timelineResult.reason.message
+        : null,
+    histogram:
+      histogramResult.status === "fulfilled" ? histogramResult.value : null,
+    histogramError:
+      histogramResult.status === "rejected"
+        ? histogramResult.reason.message
+        : null,
+    requests,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+module.exports = { getAnalytics, getViewingCharts };

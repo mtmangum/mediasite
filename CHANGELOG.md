@@ -4,10 +4,18 @@ All notable changes to Mediasite Lab are documented here, newest first.
 
 ## [Unreleased]
 
+### Added
+
+- Front-of-card recording warnings for durations under 20 minutes, missing usable media, processing, and unavailable audio evidence, with expandable explanations and bounded, cached checks.
+- Expanded viewing analytics with compact charts shown side by side on wider screens: an interactive video timeline and an equal-width watch-duration histogram, scrub readouts, exact session counts, separate zero/unknown durations, refresh, and keyboard-accessible segment inspection.
+- On-demand chart fetching follows API pagination and returns aggregate session counts without viewer identities; unavailable or incomplete reports are shown explicitly.
+
 ### Changed
 
 - Replaced the presentation-count badge with compact pagination in the top toolbar, synchronized with the existing bottom pagination.
 - Removed the static “Local workspace” label from both pages.
+- Restyled viewing charts with iOS-inspired headline metrics, a stepped area timeline, rounded histogram bars, subtle grid lines, and compact keyboard-accessible scrubbing.
+- Added a fine monochrome grain and restrained shadows to both presentation-card faces for subtle separation from the background.
 
 ### Fixed
 

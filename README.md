@@ -72,6 +72,25 @@ otherwise they are cached in page memory. The **API responses** disclosure shows
 endpoint status/timing and the aggregate JSON. Missing values appear as a dash;
 permission errors and unavailable platform data are shown explicitly.
 
+Choose **Viewing charts** on the analytics side of a card to open the expanded
+view. The timeline shows reported segment views along the recording; scrub across the plot
+or use the keyboard-accessible slider for exact counts. Compact headline numbers,
+a stepped area timeline, and rounded histogram bars keep the charts readable. The duration histogram groups sessions
+with recorded watch time into equal-width intervals and lists zero-second opens
+and unavailable durations separately. Sessions are not unique viewers, and watch
+time includes replay. Chart data loads only when opened, follows API pagination,
+and is cached in page memory until **Refresh charts** is selected. Viewer names,
+IP addresses, and playback tickets are not returned to the browser. Escape or
+**Close** returns to the card.
+
+Cards also show recording checks on the front. Recordings under 20 minutes are
+flagged for review; live recordings are excluded. File checks look for completed
+current-revision audio/video with positive file size and duration. Audio checks
+use waveform metadata: a missing waveform means **Audio not verified**, not
+confirmed silence. Expand the check for the evidence and explanation. Only the
+visible page is checked, with two checks in flight and a five-minute server cache.
+External videos skip local-file checks.
+
 ## What needs which credentials
 
 | Endpoint | Anonymous | API key only | API key + login |
@@ -92,12 +111,14 @@ permission errors and unavailable platform data are shown explicitly.
 
 ## Files
 
-- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`)
+- `server.js` — local web server and routes (`/`, `/recent`, `/recent.json`, `/request`, `/config`, `/thumb`, `/analytics.json?id=…`, `/viewing.json?id=…`, `/health.json?id=…`)
+- `recording-health.js` — duration, current media, and audio-waveform checks
 - `analytics.js` — aggregate analytics requests and normalization
 - `mediasite.js` — shared request helper (auth headers, timing)
 - `smoke-test.js` — CLI checks
 - `frontend/index.html` / `frontend/recent.html` — accessible page markup
 - `frontend/src/explorer.ts` / `presentations.ts` — page interactions
 - `frontend/src/shared.ts` — shared DOM helpers and API types
+- `frontend/src/viewing-charts.ts` — expanded analytics charts and segment inspection
 - `frontend/src/style.css` — responsive visual system
 - `vite.config.mjs` / `tsconfig.json` — build and strict type-check settings

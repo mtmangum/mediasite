@@ -3,7 +3,10 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { getConfig, callApi } = require("./mediasite");
-const { getAnalytics } = require("./analytics");
+const { getAnalytics, getViewingCharts } = require("./analytics");
+
+const { durationWarnings, getRecordingHealth } = require("./recording-health");
+const healthCache = new Map();
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(__dirname, "dist");
@@ -27,15 +30,43 @@ async function start() {
   let vite = null;
   const server = http.createServer(async (req, res) => {
     try {
-      if (req.method === "GET" && req.url.split("?")[0] === "/analytics.json") {
+      if (
+        req.method === "GET" &&
+        ["/analytics.json", "/viewing.json"].includes(req.url.split("?")[0])
+      ) {
         const id = new URL(req.url, "http://localhost").searchParams.get("id");
         try {
           return sendJson(
             res,
             200,
-            await getAnalytics(getConfig(overrides), id),
+            await (
+              req.url.startsWith("/viewing.json")
+                ? getViewingCharts
+                : getAnalytics
+            )(getConfig(overrides), id),
           );
         } catch (error) {
+          return sendJson(res, error.status || 502, { error: error.message });
+        }
+      }
+
+      if (req.method === "GET" && req.url.split("?")[0] === "/health.json") {
+        const params = new URL(req.url, "http://localhost").searchParams;
+        const id = params.get("id");
+        let entry = healthCache.get(id);
+        if (!entry || entry.expires <= Date.now()) {
+          if (healthCache.size >= 100)
+            healthCache.delete(healthCache.keys().next().value);
+          entry = {
+            expires: Date.now() + 5 * 60 * 1000,
+            promise: getRecordingHealth(getConfig(overrides), id),
+          };
+          healthCache.set(id, entry);
+        }
+        try {
+          return sendJson(res, 200, await entry.promise);
+        } catch (error) {
+          if (healthCache.get(id) === entry) healthCache.delete(id);
           return sendJson(res, error.status || 502, { error: error.message });
         }
       }
@@ -57,6 +88,7 @@ async function start() {
           created: p.CreationDate,
           recorded: p.RecordDate,
           durationMs: p.Duration,
+          recordingWarnings: durationWarnings(p),
           owner: p.Owner,
           presenter: p.PrimaryPresenter,
           views: p.NumberOfViews,
@@ -99,6 +131,7 @@ async function start() {
       if (req.url === "/config") {
         if (req.method === "POST") {
           const updates = JSON.parse((await readBody(req)) || "{}");
+          healthCache.clear();
           for (const key of ["baseUrl", "username", "password", "apiKey"]) {
             if (
               typeof updates[key] === "string" &&

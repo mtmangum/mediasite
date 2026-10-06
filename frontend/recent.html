@@ -146,6 +146,23 @@
       </footer>
     </main>
 
+    <dialog id="analyticsDialog" aria-labelledby="analyticsTitle">
+      <div class="expanded-head">
+        <div>
+          <div class="eyebrow">Viewing analytics</div>
+          <h2 id="analyticsTitle"></h2>
+          <p id="analyticsCourse" class="muted"></p>
+        </div>
+        <form method="dialog">
+          <button class="secondary" autofocus>Close ×</button>
+        </form>
+      </div>
+      <div class="expanded-toolbar">
+        <p class="muted">All-time viewing activity</p>
+        <button id="refreshCharts" class="secondary">Refresh charts ↻</button>
+      </div>
+      <div id="viewingCharts" aria-live="polite"></div>
+    </dialog>
     <script type="module" src="/src/presentations.ts"></script>
   </body>
 </html>

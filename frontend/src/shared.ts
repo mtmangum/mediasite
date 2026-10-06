@@ -34,6 +34,7 @@ export interface Presentation {
   isLive?: boolean;
   thumbnail?: string;
   watchUrl: string;
+  recordingWarnings?: RecordingWarning[];
 }
 
 export interface Analytics {
@@ -49,5 +50,40 @@ export interface Analytics {
   systems: { name: string; views: number | null }[] | null;
   warnings: string[];
   requests: { endpoint: string; status: number; ms: number }[];
+  fetchedAt: string;
+}
+
+export interface ViewingCharts {
+  timeline:
+    | {
+        startSeconds: number;
+        durationSeconds: number;
+        views: number;
+      }[]
+    | null;
+  timelineError: string | null;
+  histogram: {
+    bins: { startSeconds: number; endSeconds: number; sessions: number }[];
+    binSeconds: number;
+    totalSessions: number;
+    watchedSessions: number;
+    zeroSeconds: number;
+    unknownSeconds: number;
+  } | null;
+  histogramError: string | null;
+  requests: { endpoint: string; status: number; ms: number }[];
+  fetchedAt: string;
+}
+
+export interface RecordingWarning {
+  code: string;
+  label: string;
+  detail: string;
+  severity: "warning" | "notice";
+}
+export interface RecordingHealth {
+  warnings: RecordingWarning[];
+  media: string;
+  audio: string;
   fetchedAt: string;
 }

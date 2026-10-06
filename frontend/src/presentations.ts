@@ -1,10 +1,13 @@
 import "./theme";
 import { parseCourseTitle } from "./course-title";
+import { renderViewingCharts } from "./viewing-charts";
 import {
   element,
   errorMessage,
   type Analytics,
   type Presentation,
+  type ViewingCharts,
+  type RecordingHealth,
 } from "./shared";
 
 const esc = (s: unknown) =>
@@ -40,7 +43,78 @@ interface AnalyticsState {
   error?: string;
   loading: boolean;
 }
+const recordingHealth = new Map<
+  string,
+  { data?: RecordingHealth; error?: string; loading: boolean }
+>();
+const healthQueue = new Set<string>();
+let activeChecks = 0;
+function healthMarkup(p: Presentation) {
+  const entry = recordingHealth.get(p.id);
+  const warnings = entry?.data?.warnings || p.recordingWarnings || [];
+  const label = warnings.length
+    ? `${warnings[0].label}${warnings.length > 1 ? ` +${warnings.length - 1}` : ""}`
+    : entry?.error
+      ? "Recording checks unavailable"
+      : entry?.data
+        ? "Recording checks"
+        : "Checking recording…";
+  return `<details class="recording-health ${warnings.some((w) => w.severity === "warning") ? "has-warning" : ""}"><summary>${warnings.length ? '<span aria-hidden="true">△</span> ' : ""}${esc(label)}</summary><div>${warnings.map((w) => `<p><strong>${esc(w.label)}.</strong> ${esc(w.detail)}</p>`).join("")}${entry?.data ? `<p><strong>Files:</strong> ${esc(entry.data.media)}</p><p><strong>Audio:</strong> ${esc(entry.data.audio)}</p>` : `<p>${esc(entry?.error || "Media and audio-waveform metadata are being checked.")}</p>`}</div></details>`;
+}
+function updateHealth(id: string) {
+  const slot = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-health]"),
+  ).find((e) => e.dataset.health === id);
+  const p = items.find((p) => p.id === id);
+  if (slot && p) slot.innerHTML = healthMarkup(p);
+}
+function queueHealth(pageItems: Presentation[]) {
+  // Only visible cards are checked, with two requests in flight at a time.
+  healthQueue.clear();
+  pageItems.forEach((p) => {
+    const entry = recordingHealth.get(p.id);
+    if (
+      !entry ||
+      (entry.data &&
+        Date.now() - Date.parse(entry.data.fetchedAt) > 5 * 60 * 1000)
+    )
+      healthQueue.add(p.id);
+  });
+  const pump = () => {
+    while (activeChecks < 2 && healthQueue.size) {
+      const id = healthQueue.values().next().value!;
+      healthQueue.delete(id);
+      activeChecks++;
+      recordingHealth.set(id, { loading: true });
+      void (async () => {
+        try {
+          const response = await fetch(
+            `/health.json?id=${encodeURIComponent(id)}`,
+          );
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || response.statusText);
+          recordingHealth.set(id, { loading: false, data });
+        } catch (error) {
+          recordingHealth.set(id, {
+            loading: false,
+            error: errorMessage(error),
+          });
+        }
+        updateHealth(id);
+        activeChecks--;
+        pump();
+      })();
+    }
+  };
+  pump();
+}
 const analytics = new Map<string, AnalyticsState>();
+const viewing = new Map<
+  string,
+  { data?: ViewingCharts; error?: string; loading: boolean }
+>();
+const dialog = element<HTMLDialogElement>("analyticsDialog");
+let expandedId: string | null = null;
 const flipped = new Set<string>();
 let items: Presentation[] = [];
 const pageSize = 9;
@@ -110,6 +184,7 @@ function render() {
       ${courseMarkup(p, true)}
       ${p.description ? `<p class="desc">${esc(p.description)}</p>` : ""}
       <dl><dt>Recorded</dt><dd>${esc(fmtDate(p.recorded))}</dd>${instructorMarkup(p)}</dl>
+      <div data-health="${esc(p.id)}">${healthMarkup(p)}</div>
       <details class="presentation-details"><summary>More details</summary><dl><dt>Uploaded</dt><dd>${esc(fmtDate(p.created))}</dd><dt>Owner</dt><dd>${esc(p.owner || "—")}</dd><dt>Folder</dt><dd>${esc(p.folder || "—")}</dd>${parseCourseTitle(p.title).schedule ? `<dt>Schedule</dt><dd>${esc(parseCourseTitle(p.title).schedule)}</dd>` : ""}<dt>Original title</dt><dd>${esc(p.title || "Untitled")}</dd></dl>${p.description ? `<p class="full-description">${esc(p.description)}</p>` : ""}</details>
     </div>
     <div class="card-actions">
@@ -131,6 +206,7 @@ function render() {
   document
     .querySelectorAll<HTMLImageElement>(".thumb")
     .forEach((img) => (img.onerror = () => img.remove()));
+  queueHealth(pageItems);
 }
 function metric(value: number | null) {
   return value === null ? "—" : value.toLocaleString();
@@ -168,6 +244,7 @@ function analyticsMarkup(id: string) {
         `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`,
     )
     .join("")}</div>
+    <button class="secondary expand-analytics" data-action="expand">Viewing charts ↗</button>
     <dl class="analytics-summary"><dt>On-demand / live</dt><dd>${metric(data.onDemandViews)} / ${metric(data.liveViews)}</dd><dt>First watched</dt><dd>${esc(fmtDate(data.firstWatched || undefined))}</dd><dt>Last watched</dt><dd>${esc(fmtDate(data.lastWatched || undefined))}</dd></dl>
     <div class="platform-grid">${platformMarkup("Browsers", data.browsers)}${platformMarkup("Operating systems", data.systems)}</div>
     ${data.warnings.length ? `<p class="muted analytics-note">Some platform data is unavailable. Summary totals are still shown.</p>` : ""}
@@ -201,12 +278,75 @@ async function loadAnalytics(id: string, refresh = false) {
   }
   updateAnalytics(id);
 }
+function updateViewing(id: string) {
+  if (expandedId !== id || !dialog.open) return;
+  const entry = viewing.get(id);
+  const content = element("viewingCharts");
+  element<HTMLButtonElement>("refreshCharts").disabled = !!entry?.loading;
+  if (!entry || entry.loading) {
+    content.innerHTML =
+      '<p class="analytics-state muted" role="status">Loading viewing charts…</p>';
+  } else if (entry.error) {
+    content.innerHTML = `<p class="analytics-state bad" role="alert">${esc(entry.error)}</p>`;
+  } else {
+    renderViewingCharts(
+      content,
+      entry.data!,
+      items.find((p) => p.id === id)!,
+    );
+  }
+}
+async function loadViewing(id: string, refresh = false) {
+  if (viewing.get(id)?.loading || (!refresh && viewing.get(id)?.data)) {
+    updateViewing(id);
+    return;
+  }
+  viewing.set(id, { loading: true });
+  updateViewing(id);
+  try {
+    const response = await fetch(`/viewing.json?id=${encodeURIComponent(id)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || response.statusText);
+    viewing.set(id, { loading: false, data });
+  } catch (error) {
+    viewing.set(id, { loading: false, error: errorMessage(error) });
+  }
+  updateViewing(id);
+}
+function expandAnalytics(id: string) {
+  const p = items.find((p) => p.id === id)!;
+  const parsed = parseCourseTitle(p.title);
+  expandedId = id;
+  element("analyticsTitle").textContent = parsed.title;
+  element("analyticsCourse").textContent = [
+    parsed.course,
+    parsed.sections
+      ? `Section${parsed.sections.includes(",") ? "s" : ""} ${parsed.sections}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  dialog.showModal();
+  document.documentElement.classList.add("analytics-open");
+  void loadViewing(id);
+}
+dialog.addEventListener("close", () => {
+  expandedId = null;
+  document.documentElement.classList.remove("analytics-open");
+});
+element<HTMLButtonElement>("refreshCharts").onclick = () => {
+  if (expandedId) void loadViewing(expandedId, true);
+};
 element("list").addEventListener("click", (event) => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest<HTMLButtonElement>("button[data-action]");
   const card = button?.closest<HTMLElement>(".card");
   const id = card?.dataset.id;
   if (!button || !card || !id) return;
+  if (button.dataset.action === "expand") {
+    expandAnalytics(id);
+    return;
+  }
   if (button.dataset.action === "refresh") {
     void loadAnalytics(id, true);
     return;
