@@ -234,3 +234,11 @@ $("download").onclick = () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 loadConfig();
+if (__DEMO__) {
+  // Nothing here is connected to Mediasite; don't invite anyone to type real credentials.
+  for (const id of ["baseUrl", "username", "password", "apiKey"] as const)
+    $(id).disabled = true;
+  $("save").disabled = true;
+  $("configMessage").textContent =
+    "Connection settings are disabled in the demo, which uses built-in sample data.";
+}

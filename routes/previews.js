@@ -1,4 +1,4 @@
-const { sendJson } = require("../http-utils");
+const { sendJson, SECURITY_HEADERS } = require("../http-utils");
 
 const loadPreview = (req, res, ctx, url, respond) =>
   ctx.previews
@@ -27,6 +27,7 @@ function previewImage(req, res, ctx, url) {
     if (!Number.isInteger(index) || index < 0 || index >= frames.length)
       return sendJson(res, 400, { error: "Invalid preview frame" });
     res.writeHead(200, {
+      ...SECURITY_HEADERS,
       "Content-Type": "image/jpeg",
       "Cache-Control": "private, max-age=300",
     });

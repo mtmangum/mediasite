@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { sendJson } = require("./http-utils");
+const { sendJson, SECURITY_HEADERS } = require("./http-utils");
 
 const TYPES = {
   ".html": "text/html",
@@ -37,6 +37,7 @@ function serveStatic(req, res, { root, vite }) {
     fs.statSync(target).isFile()
   ) {
     res.writeHead(200, {
+      ...SECURITY_HEADERS,
       "Content-Type": TYPES[path.extname(target)] || "application/octet-stream",
     });
     return res.end(fs.readFileSync(target));

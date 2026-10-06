@@ -20,20 +20,58 @@ const ctx = {
   config: () => getConfig(ctx.overrides),
 };
 
+const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
+
+// Only answer requests addressed to this machine on our own port. A page on another site can
+// make a browser send requests here ("DNS rebinding"), but it cannot make them carry a loopback
+// Host header, so this keeps such pages out.
+function hostAllowed(req) {
+  try {
+    const host = new URL(`http://${req.headers.host}`);
+    return LOOPBACK.test(host.hostname) && (host.port || "80") === String(PORT);
+  } catch {
+    return false;
+  }
+}
+
+// The API holds your Mediasite credentials, so only this app's own pages may call it. Browsers
+// label every cross-site request ("Sec-Fetch-Site") and send an Origin on writes; refuse both
+// kinds of foreign request, and require JSON bodies, which a plain cross-site form cannot send.
+function sameOriginCall(req) {
+  const site = req.headers["sec-fetch-site"];
+  if (site && !["same-origin", "none"].includes(site)) return false;
+  const origin = req.headers.origin;
+  if (origin && origin !== `http://${req.headers.host}`) return false;
+  return true;
+}
+
 async function handle(req, res, vite) {
   try {
+    if (!hostAllowed(req))
+      return sendJson(res, 403, { error: "Forbidden host" });
     const url = new URL(req.url, "http://localhost");
     const route = routes.find(
       (r) =>
         r.path === url.pathname &&
         (r.method === "*" || r.method === req.method),
     );
-    if (route) return await route.handler(req, res, ctx, url);
+    if (route) {
+      if (!sameOriginCall(req))
+        return sendJson(res, 403, {
+          error: "Cross-site requests are not allowed",
+        });
+      if (
+        !["GET", "HEAD"].includes(req.method) &&
+        !/^application\/json\b/i.test(req.headers["content-type"] || "")
+      )
+        return sendJson(res, 415, { error: "Send JSON (application/json)" });
+      return await route.handler(req, res, ctx, url);
+    }
     if (req.method === "GET")
       return serveStatic(req, res, { root: PUBLIC, vite });
     sendJson(res, 404, { error: "Not found" });
   } catch (err) {
-    sendJson(res, 500, {
+    sendJson(res, err.status || 500, {
       error: err.name === "TimeoutError" ? "Request timed out" : err.message,
     });
   }

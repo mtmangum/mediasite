@@ -283,6 +283,184 @@ test("/presentation.json returns one presentation, 404s unknown ones, and reject
   assert.equal((await get("/presentation.json?id=a'b")).status, 400);
 });
 
+// A raw HTTP call, so tests can send the headers a browser (or an attacker's page) would.
+const rawCall = (method, path, headers = {}, body) =>
+  new Promise((resolve, reject) => {
+    const target = new URL(base);
+    const request = http.request(
+      { host: target.hostname, port: target.port, method, path, headers },
+      (response) => {
+        let text = "";
+        response.on("data", (chunk) => (text += chunk));
+        response.on("end", () =>
+          resolve({ status: response.statusCode, body: text }),
+        );
+      },
+    );
+    request.on("error", reject);
+    if (body) request.write(body);
+    request.end();
+  });
+const JSON_TYPE = { "Content-Type": "application/json" };
+
+test("requests addressed to any other host are refused (DNS rebinding)", async () => {
+  const port = new URL(base).port;
+  for (const host of [
+    "attacker.example",
+    `attacker.example:${port}`,
+    "localhost:9",
+    "127.0.0.1.evil.example",
+  ])
+    assert.equal(
+      (await rawCall("GET", "/config", { Host: host })).status,
+      403,
+      host,
+    );
+  for (const host of [`localhost:${port}`, `127.0.0.1:${port}`])
+    assert.equal(
+      (await rawCall("GET", "/config", { Host: host })).status,
+      200,
+      host,
+    );
+});
+
+test("cross-site pages cannot call the API that holds your credentials", async () => {
+  const origin = base;
+  const forged = {
+    Origin: "https://attacker.example",
+    "Sec-Fetch-Site": "cross-site",
+  };
+  // A cross-site GET (for example from an <img> tag) still makes the server call Mediasite.
+  assert.equal(
+    (await rawCall("GET", "/recent.json", { "Sec-Fetch-Site": "cross-site" }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await rawCall("GET", "/recent.json", { "Sec-Fetch-Site": "same-site" }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await rawCall("GET", "/recent.json", {
+        Origin: "https://attacker.example",
+      })
+    ).status,
+    403,
+  );
+  // The dangerous one: re-pointing the API host so your login is sent to an attacker.
+  const hijack = JSON.stringify({ baseUrl: "https://attacker.example/Api/v1" });
+  assert.equal(
+    (
+      await rawCall(
+        "POST",
+        "/config",
+        { ...forged, "Content-Type": "text/plain" },
+        hijack,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await rawCall("POST", "/config", { ...forged, ...JSON_TYPE }, hijack))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await rawCall(
+        "POST",
+        "/request",
+        { Origin: "https://attacker.example", ...JSON_TYPE },
+        '{"method":"DELETE","path":"/Presentations(\'x\')"}',
+      )
+    ).status,
+    403,
+  );
+  // This app's own pages are unaffected.
+  const own = { Origin: origin, "Sec-Fetch-Site": "same-origin" };
+  assert.equal((await rawCall("GET", "/recent.json", own)).status, 200);
+  assert.equal(
+    (await rawCall("POST", "/config", { ...own, ...JSON_TYPE }, "{}")).status,
+    200,
+  );
+  assert.equal(
+    (await get("/config")).body.baseUrl,
+    `${fakeOrigin}/Mediasite/Api/v1`,
+    "nothing was changed",
+  );
+});
+
+test("writes need a JSON body, which a plain cross-site form cannot send", async () => {
+  for (const type of [
+    "text/plain",
+    "application/x-www-form-urlencoded",
+    "multipart/form-data; boundary=x",
+  ])
+    assert.equal(
+      (
+        await rawCall(
+          "POST",
+          "/request",
+          { "Content-Type": type },
+          '{"path":"/Home"}',
+        )
+      ).status,
+      415,
+      type,
+    );
+  assert.equal(
+    (await rawCall("POST", "/request", {}, '{"path":"/Home"}')).status,
+    415,
+  );
+});
+
+test("the base URL must be https (http only for this machine) with no embedded login", async () => {
+  const set = (baseUrl) =>
+    rawCall("POST", "/config", JSON_TYPE, JSON.stringify({ baseUrl }));
+  for (const bad of [
+    "http://attacker.example/Api/v1",
+    "ftp://example.edu/Api/v1",
+    "file:///etc/passwd",
+    "javascript:alert(1)",
+    "https://user:pass@example.edu/Api/v1",
+    "not a url",
+  ])
+    assert.equal((await set(bad)).status, 400, bad);
+  assert.equal(
+    (await set("https://other.example.edu/Mediasite/Api/v1")).status,
+    200,
+  );
+  assert.equal(
+    (await set(`${fakeOrigin}/Mediasite/Api/v1`)).status,
+    200,
+    "http on loopback is allowed",
+  );
+  assert.equal(
+    (await get("/config")).body.baseUrl,
+    `${fakeOrigin}/Mediasite/Api/v1`,
+  );
+});
+
+test("responses carry anti-framing and anti-sniffing headers", async () => {
+  for (const path of ["/config", "/nonexistent"]) {
+    const res = await fetch(base + path);
+    assert.equal(res.headers.get("x-frame-options"), "DENY", path);
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff", path);
+    assert.equal(res.headers.get("referrer-policy"), "no-referrer", path);
+  }
+});
+
+test("oversized request bodies are rejected", async () => {
+  const big = JSON.stringify({
+    path: "/Home",
+    body: "x".repeat(1024 * 1024 + 10),
+  });
+  const reply = await rawCall("POST", "/request", JSON_TYPE, big);
+  assert.equal(reply.status, 413);
+});
+
 test("analytics routes require an id", async () => {
   for (const route of ["/analytics.json", "/viewing.json"]) {
     const res = await get(route);

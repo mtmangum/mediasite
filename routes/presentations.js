@@ -1,6 +1,6 @@
 const { callApi, authHeaders } = require("../mediasite");
 const { durationWarnings } = require("../recording-health");
-const { sendJson } = require("../http-utils");
+const { sendJson, SECURITY_HEADERS } = require("../http-utils");
 
 const RECENT_COUNT = 100;
 const RECENT_PATH = `/Presentations?$top=${RECENT_COUNT}&$filter=Status eq 'Viewable'&$orderby=CreationDate desc&$select=full`;
@@ -50,6 +50,7 @@ async function thumbnail(req, res, ctx, url) {
     signal: AbortSignal.timeout(30000),
   });
   res.writeHead(up.status, {
+    ...SECURITY_HEADERS,
     "Content-Type": up.headers.get("content-type") || "image/jpeg",
     "Cache-Control": "max-age=300",
   });

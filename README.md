@@ -168,6 +168,24 @@ has not shown yet, a prompt offers them; nothing moves until you click **Show**.
 **Refresh** button reloads immediately. Add `?poll=10` to the URL to check every ten
 seconds while testing.
 
+## Security notes
+
+The local server holds your Mediasite login and API key and calls Mediasite on your behalf,
+so it is built to be reachable only by this app's own pages:
+
+- It listens on `127.0.0.1` only, and answers only requests addressed to `localhost`,
+  `127.0.0.1`, or `[::1]` on its own port, which defeats DNS-rebinding pages.
+- Cross-site requests (anything a browser labels `Sec-Fetch-Site` other than `same-origin`
+  or `none`, or with a foreign `Origin`) are refused, and writes must be `application/json`.
+- A new base URL must be `https://` (or `http://` for localhost) with no embedded login,
+  because your credentials are sent to it. Credentials are never returned to the browser.
+- Responses are sent with `X-Frame-Options: DENY`, `nosniff`, and `no-referrer`.
+
+The API explorer can still send any method (including `DELETE`) to Mediasite with your real
+credentials when you press **Send**; that is its purpose, so use an account with only the
+permissions you want it to have. The GitHub Pages demo never contacts Mediasite and has its
+connection form disabled.
+
 ## What needs which credentials
 
 | Endpoint                    | Anonymous | API key only          | API key + login |
